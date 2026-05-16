@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-serif: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  /* --font-sans is injected by next/font as a CSS variable */
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply font-sans text-black bg-white;
+  }
+
+  ::selection {
+    @apply bg-rose-brand text-white;
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track { @apply bg-gray-100; }
+  ::-webkit-scrollbar-thumb { @apply bg-gray-400; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-rose-brand; }
+}
+
+@layer components {
+  .luxury-divider {
+    @apply flex items-center gap-4 my-6;
+  }
+  .luxury-divider::before,
+  .luxury-divider::after {
+    content: '';
+    @apply flex-1 h-px bg-gray-200;
+  }
+
+  .gold-line {
+    @apply w-12 h-0.5 bg-rose-brand mx-auto;
+  }
+
+  .category-badge {
+    @apply inline-block text-xs font-sans uppercase tracking-widest text-rose-brand border border-rose-brand px-3 py-1 rounded;
+  }
+
+  .btn-primary {
+    @apply bg-black text-white px-8 py-3 text-sm uppercase tracking-widest rounded-lg hover:bg-rose-brand transition-colors duration-300;
+  }
+
+  .btn-outline {
+    @apply border border-black text-black px-8 py-3 text-sm uppercase tracking-widest rounded-lg hover:bg-rose-brand hover:border-rose-brand hover:text-white transition-colors duration-300;
+  }
+
+  .article-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8;
+  }
+
+  /* Tiptap editor styles */
+  .ProseMirror {
+    @apply outline-none min-h-[400px] p-4;
+  }
+  .ProseMirror p { @apply mb-4 leading-relaxed; }
+  .ProseMirror h1 { @apply font-serif text-3xl mb-4 mt-8; }
+  .ProseMirror h2 { @apply font-serif text-2xl mb-3 mt-6; }
+  .ProseMirror h3 { @apply font-serif text-xl mb-2 mt-4; }
+  .ProseMirror ul { @apply list-disc pl-6 mb-4; }
+  .ProseMirror ol { @apply list-decimal pl-6 mb-4; }
+  .ProseMirror li { @apply mb-1; }
+  .ProseMirror blockquote { @apply border-l-4 border-rose-brand pl-6 italic my-4 text-gray-600; }
+  .ProseMirror a { @apply text-rose-brand underline; }
+  .ProseMirror img { @apply max-w-full h-auto my-4; }
+  .ProseMirror strong { @apply font-semibold; }
+  .ProseMirror em { @apply italic; }
+  .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    @apply text-gray-400 pointer-events-none float-left h-0;
+  }
+}

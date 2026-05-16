@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          String    @default("AUTHOR")
+  avatar        String?
+  bio           String?
+  active        Boolean   @default(true)
+  articles      Article[]
+  media         Media[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  coverImage  String?
+  color       String?   @default("#C9A84C")
+  sortOrder   Int       @default(0)
+  articles    Article[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("categories")
+}
+
+model Tag {
+  id        String       @id @default(cuid())
+  name      String       @unique
+  slug      String       @unique
+  articles  ArticleTag[]
+  createdAt DateTime     @default(now())
+
+  @@map("tags")
+}
+
+model Article {
+  id               String       @id @default(cuid())
+  title            String
+  slug             String       @unique
+  excerpt          String?
+  content          String
+  featuredImage    String?
+  featuredImageAlt String?
+  status           String       @default("DRAFT")
+  featured         Boolean      @default(false)
+  viewCount        Int          @default(0)
+  publishedAt      DateTime?
+  metaTitle        String?
+  metaDescription  String?
+  author           User         @relation(fields: [authorId], references: [id])
+  authorId         String
+  category         Category?    @relation(fields: [categoryId], references: [id])
+  categoryId       String?
+  tags             ArticleTag[]
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([slug])
+  @@index([status, publishedAt])
+  @@index([categoryId])
+  @@map("articles")
+}
+
+model ArticleTag {
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId String
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId     String
+
+  @@id([articleId, tagId])
+  @@map("article_tags")
+}
+
+model Media {
+  id           String   @id @default(cuid())
+  filename     String
+  originalName String
+  url          String
+  size         Int
+  mimeType     String
+  alt          String?
+  uploadedBy   User     @relation(fields: [userId], references: [id])
+  userId       String
+  createdAt    DateTime @default(now())
+
+  @@map("media")
+}
+
+model SiteSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
