@@ -26,6 +26,8 @@ spec:
             value: ${ZEABUR_WEB_URL}
           - key: NODE_ENV
             value: production
+          - key: OPENAI_API_KEY
+            value: ${OPENAI_API_KEY}
         volumes:
           - id: uploads
             dir: /app/public/uploads
