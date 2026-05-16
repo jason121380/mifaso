@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import Script from "next/script";
 import prisma from "@/lib/prisma";
 import { formatDate, stripHtml, truncate } from "@/lib/utils";
 import ArticleCard from "@/components/public/ArticleCard";
+import InstagramEmbed from "@/components/public/InstagramEmbed";
 
 interface Props { params: Promise<{ slug: string }> }
 
@@ -102,7 +102,7 @@ export default async function ArticlePage({ params }: Props) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <Script src="https://www.instagram.com/embed.js" strategy="lazyOnload" />
+      <InstagramEmbed />
 
       <article className="max-w-screen-xl mx-auto px-6">
         {/* Article header */}
