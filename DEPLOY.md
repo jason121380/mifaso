@@ -31,9 +31,13 @@ npm run dev
 開啟 http://localhost:3000 查看前台
 開啟 http://localhost:3000/admin 進入後台
 
-**預設管理員帳號：**
-- Email: admin@luxe.com
-- 密碼: admin123456
+**登入帳號（來自 `scripts/seed-data/users.json`）：**
+- 主編：帳號 `admin`（角色 ADMIN）
+- 作者：帳號 `jason`（角色 AUTHOR）
+- 密碼為原網站匯出時設定的密碼（登入頁的 Account 欄位填上方帳號）
+
+> 只想要 2 篇示範資料、用 `admin@mifaso.com` / `admin123456` 登入時，
+> 改執行 `npm run db:seed:demo`。
 
 ---
 
@@ -74,6 +78,7 @@ git push -u origin main
 | `NEXTAUTH_URL` | 你的 Zeabur 網域，如 `https://luxe.zeabur.app` |
 | `SITE_URL` | 同上 |
 | `NODE_ENV` | `production` |
+| `OPENAI_API_KEY` | OpenAI 金鑰（AI 摘要／SEO／標籤功能用，沒設則 AI 功能停用） |
 
 ### 6. 設定 Persistent Volume（圖片存放）
 1. 點擊 Next.js 服務 → Volumes
@@ -86,9 +91,13 @@ npm install && npx prisma generate && npx prisma migrate deploy && npm run build
 ```
 
 ### 8. Seed 初始資料（首次部署後）
-在 Zeabur 的 Terminal 執行：
+在 Zeabur 的 Terminal 執行（會匯入正式的 88 篇文章、分類、標籤與帳號）：
 ```bash
 npm run db:seed
+```
+驗證雲端文章數：
+```bash
+npx tsx -e "import {PrismaClient} from '@prisma/client'; const p=new PrismaClient(); p.article.count().then(n=>{console.log('雲端文章數:',n);process.exit()})"
 ```
 
 ---
