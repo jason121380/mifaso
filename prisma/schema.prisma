@@ -111,3 +111,15 @@ model SiteSettings {
 
   @@map("site_settings")
 }
+
+model PageView {
+  id        String   @id @default(cuid())
+  path      String
+  articleId String?
+  referrer  String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([path])
+  @@map("page_views")
+}

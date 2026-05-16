@@ -16,6 +16,7 @@ import {
   ExternalLink,
   ChevronRight,
   X,
+  BarChart3,
 } from "lucide-react";
 
 const navItems = [
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/admin/categories", label: "分類管理", icon: FolderOpen },
   { href: "/admin/tags", label: "標籤管理", icon: Tag },
   { href: "/admin/media", label: "媒體庫", icon: ImageIcon },
+  { href: "/admin/analytics", label: "流量分析", icon: BarChart3 },
   { href: "/admin/users", label: "用戶管理", icon: Users },
 ];
 
