@@ -45,7 +45,7 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <Image src="/logo.png" alt="mifaso 迷髮所" width={160} height={64} className="h-14 w-auto object-contain" priority />
+              <Image src="/logo.png" alt="mifaso 迷髮所" width={160} height={64} className="h-14 w-auto object-contain brightness-0" priority />
             </div>
             <h1 className="text-xl font-bold text-gray-900">內容管理後台</h1>
             <p className="text-sm text-gray-400 mt-1">登入以管理 mifaso 迷髮所的內容</p>

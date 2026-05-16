@@ -58,7 +58,7 @@ export default function Sidebar({ userName, userRole, open = false, collapsed = 
       <div className="px-5 py-4 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <Link href="/" target="_blank" className="flex items-center">
-            <Image src="/logo.png" alt="mifaso 迷髮所" width={120} height={48} className="h-10 w-auto object-contain" priority />
+            <Image src="/logo.png" alt="mifaso 迷髮所" width={120} height={48} className="h-10 w-auto object-contain brightness-0" priority />
           </Link>
           <div className="flex items-center gap-3">
             <Link href="/" target="_blank" className="text-gray-300 hover:text-gray-500 transition-colors">
