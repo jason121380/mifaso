@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { createHash } from "node:crypto";
-import { mkdir, writeFile, access } from "node:fs/promises";
+import { mkdir, writeFile, access, readdir } from "node:fs/promises";
 import path from "node:path";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +65,31 @@ export async function GET(req: NextRequest) {
   const role = (session?.user as { role?: string } | undefined)?.role;
   if (!session?.user || role !== "ADMIN") {
     return NextResponse.json({ error: "需要以管理員身分登入後台後再開此連結" }, { status: 401 });
+  }
+
+  // 健檢：確認執行時的實際路徑、能否寫入、寫入後是否服務得出來
+  if (req.nextUrl.searchParams.get("check") === "1") {
+    const info: Record<string, unknown> = {
+      cwd: process.cwd(),
+      uploadDir: UPLOAD_DIR,
+    };
+    try {
+      await mkdir(UPLOAD_DIR, { recursive: true });
+      const stamp = `healthcheck ${new Date().toISOString()}`;
+      await writeFile(path.join(UPLOAD_DIR, "__healthcheck.txt"), stamp);
+      info.wroteTestFile = true;
+      info.testFileUrl = "/uploads/__healthcheck.txt";
+      const files = await readdir(UPLOAD_DIR);
+      info.fileCount = files.length;
+      info.sampleFiles = files.slice(0, 8);
+    } catch (e) {
+      info.error = String(e);
+    }
+    return NextResponse.json({
+      check: true,
+      ...info,
+      note: "接著開 https://(網域)/uploads/__healthcheck.txt：能看到 healthcheck 文字 = 路徑正確且服務得出來；404 = 路徑不對或 Volume 沒生效。",
+    });
   }
 
   // 自動版：回傳一個會自己一批批跑到完的頁面
