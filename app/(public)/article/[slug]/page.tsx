@@ -5,6 +5,7 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { formatDate, stripHtml, truncate } from "@/lib/utils";
 import { renderArticleHtml } from "@/lib/article-html";
+import { jsonLdGraph, articleJsonLd, breadcrumbJsonLd } from "@/lib/seo";
 import ArticleCard from "@/components/public/ArticleCard";
 import InstagramEmbed from "@/components/public/InstagramEmbed";
 
@@ -28,22 +29,38 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const article = await prisma.article.findUnique({
     where: { slug, status: "PUBLISHED" },
-    include: { author: true, category: true },
+    include: { author: true, category: true, tags: { include: { tag: true } } },
   });
   if (!article) return { title: "文章不存在" };
 
   const description = article.metaDescription ?? truncate(stripHtml(article.excerpt ?? article.content), 160);
+  const path = `/article/${article.slug}`;
+  const tagNames = article.tags.map((t) => t.tag.name);
+  const keywords = [
+    ...tagNames,
+    article.category?.name,
+    "MIFASO",
+    "迷髮所",
+  ].filter(Boolean) as string[];
   return {
     title: article.metaTitle ?? article.title,
     description,
+    keywords,
+    authors: [{ name: article.author.name }],
+    alternates: { canonical: path },
     openGraph: {
+      url: path,
       title: article.title,
       description,
-      images: article.featuredImage ? [{ url: article.featuredImage, alt: article.featuredImageAlt ?? article.title }] : [],
+      images: article.featuredImage
+        ? [{ url: article.featuredImage, alt: article.featuredImageAlt ?? article.title }]
+        : [],
       type: "article",
       publishedTime: article.publishedAt?.toISOString(),
+      modifiedTime: article.updatedAt.toISOString(),
+      section: article.category?.name,
       authors: [article.author.name],
-      tags: [],
+      tags: tagNames,
     },
     twitter: {
       card: "summary_large_image",
@@ -88,21 +105,34 @@ export default async function ArticlePage({ params }: Props) {
     orderBy: { publishedAt: "desc" },
   });
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    headline: article.title,
-    description: article.excerpt ?? "",
-    image: article.featuredImage ?? "",
-    datePublished: article.publishedAt?.toISOString(),
-    dateModified: article.updatedAt.toISOString(),
-    author: { "@type": "Person", name: article.author.name },
-    publisher: { "@type": "Organization", name: "MIFASO 迷髮所" },
-  };
+  const seoDescription =
+    article.metaDescription ?? truncate(stripHtml(article.excerpt ?? article.content), 160);
+
+  const jsonLd = jsonLdGraph(
+    articleJsonLd({
+      title: article.title,
+      slug: article.slug,
+      description: seoDescription,
+      image: article.featuredImage,
+      imageAlt: article.featuredImageAlt,
+      publishedAt: article.publishedAt,
+      updatedAt: article.updatedAt,
+      authorName: article.author.name,
+      categoryName: article.category?.name,
+      tags: article.tags.map((t) => t.tag.name),
+    }),
+    breadcrumbJsonLd([
+      { name: "首頁", path: "/" },
+      ...(article.category
+        ? [{ name: article.category.name, path: `/category/${article.category.slug}` }]
+        : []),
+      { name: article.title, path: `/article/${article.slug}` },
+    ])
+  );
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
       <InstagramEmbed />
 
       <article className="max-w-screen-xl mx-auto px-6">

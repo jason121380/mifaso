@@ -16,9 +16,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slug = decodeURIComponent(rawSlug);
   const cat = await prisma.category.findUnique({ where: { slug } });
   if (!cat) return { title: "分類不存在" };
+  const description =
+    cat.description ?? `探索 MIFASO 迷髮所「${cat.name}」相關的精選美髮、時尚與生活美學文章。`;
+  const path = `/category/${cat.slug}`;
   return {
-    title: `${cat.name}｜MIFASO 迷髮所`,
-    description: cat.description ?? `探索 MIFASO 迷髮所${cat.name}相關的精選文章`,
+    title: cat.name,
+    description,
+    alternates: { canonical: path },
+    openGraph: { type: "website", url: path, title: cat.name, description },
   };
 }
 

@@ -11,31 +11,33 @@ interface Props {
 export default function ArticleCard({ article, variant = "default" }: Props) {
   if (variant === "featured") {
     return (
-      <article className="group relative overflow-hidden bg-black">
-        <div className="aspect-[16/9] relative">
+      <article className="group relative overflow-hidden bg-black md:rounded-lg">
+        <div className="aspect-[4/5] sm:aspect-[16/10] md:aspect-[16/9] relative">
           {article.featuredImage ? (
             <Image
               src={article.featuredImage}
               alt={article.featuredImageAlt ?? article.title}
               fill
-              className="object-cover opacity-70 group-hover:opacity-60 group-hover:scale-105 transition-all duration-700"
+              sizes="(max-width: 768px) 100vw, 1200px"
+              className="object-cover opacity-80 group-hover:opacity-70 group-hover:scale-105 transition-all duration-700"
               priority
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900" />
           )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
         </div>
-        <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-12">
+        <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8 md:p-12">
           {article.category && (
             <Link
               href={`/category/${article.category.slug}`}
-              className="category-badge mb-4 w-fit"
+              className="category-badge mb-3 md:mb-4 w-fit"
             >
               {article.category.name}
             </Link>
           )}
           <Link href={`/article/${article.slug}`}>
-            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-white font-bold leading-tight mb-4 group-hover:text-rose-brand-light transition-colors">
+            <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-white font-bold leading-tight mb-3 md:mb-4 group-hover:text-rose-brand-light transition-colors">
               {article.title}
             </h2>
           </Link>

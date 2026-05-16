@@ -1,8 +1,9 @@
 import { MetadataRoute } from "next";
 import prisma from "@/lib/prisma";
+import { SITE_URL } from "@/lib/seo";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.SITE_URL ?? "http://localhost:3000";
+  const baseUrl = SITE_URL;
 
   let articles: { slug: string; updatedAt: Date }[] = [];
   let categories: { slug: string; updatedAt: Date }[] = [];

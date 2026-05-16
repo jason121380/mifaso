@@ -59,7 +59,7 @@ export default function Header({ categories }: HeaderProps) {
 
             {/* Logo */}
             <Link href="/" className="flex-shrink-0">
-              <Image src="/logo.png" alt="mifaso 迷髮所" width={140} height={56} className="h-8 md:h-12 w-auto object-contain" priority />
+              <Image src="/logo.png" alt="mifaso 迷髮所" width={140} height={56} className="h-8 md:h-12 w-auto object-contain brightness-0" priority />
             </Link>
 
             {/* Desktop nav right */}

@@ -5,8 +5,14 @@ import ArticleCard from "@/components/public/ArticleCard";
 import prisma from "@/lib/prisma";
 
 export const metadata: Metadata = {
-  title: "MIFASO 迷髮所 — 時尚・美髮・生活美學",
+  title: { absolute: "MIFASO 迷髮所 — 時尚・美髮・生活美學" },
   description: "MIFASO 迷髮所，提供最前沿的美髮造型趨勢、彩妝保養與生活美學內容。",
+  alternates: { canonical: "/" },
+  openGraph: {
+    url: "/",
+    title: "MIFASO 迷髮所 — 時尚・美髮・生活美學",
+    description: "MIFASO 迷髮所，提供最前沿的美髮造型趨勢、彩妝保養與生活美學內容。",
+  },
 };
 
 export const revalidate = 60;
@@ -44,7 +50,7 @@ export default async function HomePage() {
     <>
       {/* Hero Section */}
       {hero && (
-        <section className="max-w-screen-xl mx-auto px-6 mb-16">
+        <section className="max-w-screen-xl mx-auto md:px-6 mb-12 md:mb-16">
           <ArticleCard article={hero} variant="featured" />
         </section>
       )}

@@ -23,6 +23,12 @@ export const metadata: Metadata = {
     siteName: "MIFASO 迷髮所",
   },
   twitter: { card: "summary_large_image" },
+  alternates: {
+    types: { "application/rss+xml": "/feed.xml" },
+  },
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
   robots: {
     index: true,
     follow: true,
