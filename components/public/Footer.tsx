@@ -40,7 +40,6 @@ export default function Footer({ categories }: FooterProps) {
             <h3 className="text-xs uppercase tracking-widest text-white/50 mb-6">關於</h3>
             <nav className="flex flex-col gap-3">
               <Link href="/search" className="text-sm text-white/80 hover:text-white transition-colors">搜尋文章</Link>
-              <Link href="/admin" className="text-sm text-white/80 hover:text-white transition-colors">編輯後台</Link>
             </nav>
           </div>
         </div>

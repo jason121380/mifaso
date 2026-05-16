@@ -3,8 +3,10 @@
 時尚・美髮・生活美學內容網站與後台 CMS。
 
 - **前台**:Next.js 15 (App Router) + React 19,文章 / 分類 / 搜尋
-- **後台**:`/admin`,NextAuth v5(Credentials + JWT),Tiptap 編輯器,AI 輔助(OpenAI)
+- **後台**:`/admin`,NextAuth v5(Credentials + JWT),Tiptap 編輯器,AI 輔助(OpenAI),流量分析
 - **資料**:Prisma + PostgreSQL
+- **SEO**:JSON-LD(Organization/WebSite/Article/Breadcrumb)、canonical、sitemap、robots、RSS `/feed.xml`
+- **資安**:文章 HTML 消毒(sanitize-html)、安全標頭、`/api/ai` 需登入、維運路由 `MAINT_TOOLS` gate
 - **部署**:Zeabur,正式網域 `https://mifaso.co`
 
 ## 本機開發
@@ -41,4 +43,5 @@ npm run dev
 
 - 圖片由 `app/uploads/[...path]/route.ts` 串流服務(Zeabur 不服務 runtime 寫入的 `public/`)。
 - 持久 Volume 必須掛在 `/src/public/uploads`。
+- 一次性維運路由(restore / localize-images / fix-updated-at)預設關閉,需 `MAINT_TOOLS=1`。
 - 切勿把密碼 / `AUTH_SECRET` / `DATABASE_URL` 值寫進版控。
