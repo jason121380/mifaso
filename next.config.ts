@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
       { pathname: "/uploads/**" },
       { pathname: "/logo.png" },
     ],
+    minimumCacheTTL: 2592000,
   },
   experimental: {
     serverActions: { bodySizeLimit: "10mb" },
