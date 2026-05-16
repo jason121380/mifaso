@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -13,8 +13,8 @@ model User {
   email         String    @unique
   password      String
   role          String    @default("AUTHOR")
-  avatar        String?
-  bio           String?
+  avatar        String?   @db.Text
+  bio           String?   @db.Text
   active        Boolean   @default(true)
   articles      Article[]
   media         Media[]
@@ -28,8 +28,8 @@ model Category {
   id          String    @id @default(cuid())
   name        String    @unique
   slug        String    @unique
-  description String?
-  coverImage  String?
+  description String?   @db.Text
+  coverImage  String?   @db.Text
   color       String?   @default("#C9A84C")
   sortOrder   Int       @default(0)
   articles    Article[]
@@ -53,16 +53,16 @@ model Article {
   id               String       @id @default(cuid())
   title            String
   slug             String       @unique
-  excerpt          String?
-  content          String
-  featuredImage    String?
+  excerpt          String?      @db.Text
+  content          String       @db.Text
+  featuredImage    String?      @db.Text
   featuredImageAlt String?
   status           String       @default("DRAFT")
   featured         Boolean      @default(false)
   viewCount        Int          @default(0)
   publishedAt      DateTime?
   metaTitle        String?
-  metaDescription  String?
+  metaDescription  String?      @db.Text
   author           User         @relation(fields: [authorId], references: [id])
   authorId         String
   category         Category?    @relation(fields: [categoryId], references: [id])
@@ -105,7 +105,7 @@ model Media {
 model SiteSettings {
   id        String   @id @default(cuid())
   key       String   @unique
-  value     String
+  value     String   @db.Text
   updatedAt DateTime @updatedAt
 
   @@map("site_settings")

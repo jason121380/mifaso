@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getClient() {
+  if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not set");
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -59,7 +62,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "未知類型" }, { status: 400 });
   }
 
-  const completion = await client.chat.completions.create({
+  const completion = await getClient().chat.completions.create({
     model: "gpt-4o-mini",
     max_tokens: 300,
     messages: [{ role: "user", content: prompt }],

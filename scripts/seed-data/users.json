@@ -1,0 +1,2 @@
+[{"id":"cmp7xb1jk00003hva5ws08wj2","name":"M編","email":"admin","password":"$2a$12$mBqjAWFGDfIS1Sn1llg/4u74DK9lQxZkloMpKQDvC7er.e0j7EfTm","role":"ADMIN","avatar":null,"bio":"Mifaso 時尚雜誌主編","active":1,"createdAt":1778910374289,"updatedAt":1778913641723},
+{"id":"cmp80ujql0001oiux7g1j5aeq","name":"jason","email":"jason","password":"$2a$12$GmfCc7Ww1D08VY5nwnddu.7DqVcQESD7hNLCSUNixp4OlomJI/oh6","role":"AUTHOR","avatar":null,"bio":"","active":1,"createdAt":1778916323182,"updatedAt":1778916323182}]
