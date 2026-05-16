@@ -3,6 +3,7 @@ import type { NextAuthConfig } from "next-auth";
 // Edge-safe config: no Prisma, no bcrypt. Shared by middleware (Edge runtime)
 // and the full Node-runtime auth instance in lib/auth.ts.
 export const authConfig = {
+  trustHost: true,
   providers: [],
   session: { strategy: "jwt" },
   pages: {
