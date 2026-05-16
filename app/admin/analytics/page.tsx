@@ -27,46 +27,83 @@ export default async function AnalyticsPage() {
   const today = dayStart(0);
   const d7 = dayStart(6);
   const d30 = dayStart(29);
-
-  const [total, todayCount, c7, c30] = await Promise.all([
-    prisma.pageView.count(),
-    prisma.pageView.count({ where: { createdAt: { gte: today } } }),
-    prisma.pageView.count({ where: { createdAt: { gte: d7 } } }),
-    prisma.pageView.count({ where: { createdAt: { gte: d30 } } }),
-  ]);
-
-  // 近 14 日每日 PV
   const days = Array.from({ length: 14 }, (_, i) => dayStart(13 - i));
-  const daily = await Promise.all(
-    days.map((start) => {
-      const end = new Date(start);
-      end.setDate(end.getDate() + 1);
-      return prisma.pageView.count({
-        where: { createdAt: { gte: start, lt: end } },
-      });
-    })
-  );
-  const maxDaily = Math.max(1, ...daily);
 
-  // 近 30 日熱門頁面
-  const top = await prisma.pageView.groupBy({
-    by: ["path"],
-    where: { createdAt: { gte: d30 } },
-    _count: { path: true },
-    orderBy: { _count: { path: "desc" } },
-    take: 12,
-  });
+  type Data = {
+    total: number;
+    todayCount: number;
+    c7: number;
+    c30: number;
+    daily: number[];
+    maxDaily: number;
+    top: { path: string; _count: { path: number } }[];
+    titleBySlug: Map<string, string>;
+  };
 
-  const slugs = top
-    .map((t) => t.path.match(/^\/article\/(.+)$/)?.[1])
-    .filter((s): s is string => !!s);
-  const articles = slugs.length
-    ? await prisma.article.findMany({
-        where: { slug: { in: slugs } },
-        select: { slug: true, title: true },
+  let data: Data | null = null;
+  try {
+    const [total, todayCount, c7, c30] = await Promise.all([
+      prisma.pageView.count(),
+      prisma.pageView.count({ where: { createdAt: { gte: today } } }),
+      prisma.pageView.count({ where: { createdAt: { gte: d7 } } }),
+      prisma.pageView.count({ where: { createdAt: { gte: d30 } } }),
+    ]);
+
+    const daily = await Promise.all(
+      days.map((start) => {
+        const end = new Date(start);
+        end.setDate(end.getDate() + 1);
+        return prisma.pageView.count({
+          where: { createdAt: { gte: start, lt: end } },
+        });
       })
-    : [];
-  const titleBySlug = new Map(articles.map((a) => [a.slug, a.title]));
+    );
+
+    const top = await prisma.pageView.groupBy({
+      by: ["path"],
+      where: { createdAt: { gte: d30 } },
+      _count: { path: true },
+      orderBy: { _count: { path: "desc" } },
+      take: 12,
+    });
+
+    const slugs = top
+      .map((t) => t.path.match(/^\/article\/(.+)$/)?.[1])
+      .filter((s): s is string => !!s);
+    const articles = slugs.length
+      ? await prisma.article.findMany({
+          where: { slug: { in: slugs } },
+          select: { slug: true, title: true },
+        })
+      : [];
+
+    data = {
+      total,
+      todayCount,
+      c7,
+      c30,
+      daily,
+      maxDaily: Math.max(1, ...daily),
+      top,
+      titleBySlug: new Map(articles.map((a) => [a.slug, a.title])),
+    };
+  } catch {
+    data = null;
+  }
+
+  if (!data) {
+    return (
+      <div className="max-w-3xl mx-auto space-y-2 py-20 text-center">
+        <h1 className="text-xl font-bold text-gray-900">進站流量分析</h1>
+        <p className="text-sm text-gray-400">
+          流量分析尚未就緒：資料表需於部署套用 migration 後建立,或目前還沒有任何瀏覽資料。
+          部署完成後,訪客瀏覽前台即會開始累積數據。
+        </p>
+      </div>
+    );
+  }
+
+  const { total, todayCount, c7, c30, daily, maxDaily, top, titleBySlug } = data;
 
   const stats = [
     { label: "今日瀏覽", value: todayCount },

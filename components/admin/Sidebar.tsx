@@ -39,24 +39,26 @@ interface SidebarProps {
   userName: string;
   userRole: string;
   open?: boolean;
+  collapsed?: boolean;
   onClose?: () => void;
 }
 
-export default function Sidebar({ userName, userRole, open = false, onClose }: SidebarProps) {
+export default function Sidebar({ userName, userRole, open = false, collapsed = false, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-screen w-64 bg-white flex flex-col z-40 border-r border-gray-100 transform transition-transform duration-200 ease-out md:translate-x-0",
-        open ? "translate-x-0" : "-translate-x-full"
+        "fixed left-0 top-0 h-screen w-64 bg-white flex flex-col z-40 border-r border-gray-100 transform transition-transform duration-200 ease-out",
+        open ? "translate-x-0" : "-translate-x-full",
+        collapsed ? "md:-translate-x-full" : "md:translate-x-0"
       )}
     >
       {/* Logo */}
       <div className="px-5 py-4 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <Link href="/" target="_blank" className="flex items-center">
-            <Image src="/logo.png" alt="mifaso 迷髮所" width={120} height={48} className="h-10 w-auto object-contain" priority />
+            <Image src="/logo.png" alt="mifaso 迷髮所" width={120} height={48} className="h-10 w-auto object-contain brightness-0" priority />
           </Link>
           <div className="flex items-center gap-3">
             <Link href="/" target="_blank" className="text-gray-300 hover:text-gray-500 transition-colors">

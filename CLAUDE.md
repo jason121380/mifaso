@@ -39,9 +39,24 @@ npm run db:seed:demo   # 只灌 2 篇示範（prisma/seed.ts，admin@mifaso.com 
 
 `DATABASE_URL`(綁 PostgreSQL 服務)、`AUTH_SECRET`、`NEXTAUTH_URL`、`SITE_URL`
 (皆 = `https://mifaso.co`)、`NODE_ENV=production`、`OPENAI_API_KEY`(選用,AI 功能)。
+- `MAINT_TOOLS` — **平時不設**。設 `1` 才會開啟下方一次性維運路由(否則一律 404)。用完移除。
+- `GOOGLE_SITE_VERIFICATION` — 選用,Google Search Console 驗證碼(設了才輸出 meta)。
+
 **勿把任何密碼/金鑰寫進 repo。**
 
-## 一次性管理工具（瀏覽器觸發,需 ADMIN 登入）
+## 資安 / SEO（本輪強化,改動前先知道）
+
+- 文章內文一律經 `lib/article-html.ts` 的 `sanitize-html` allowlist 消毒(移除
+  `<script>`/`on*`/`javascript:`,保留 IG `blockquote`、表格、目錄)。IG 由
+  `components/public/InstagramEmbed.tsx` 載入的 embed.js 處理,**勿在內文塞 script**。
+- `next.config.ts` 有全站安全標頭(HSTS、nosniff、X-Frame-Options、Referrer-Policy、
+  CSP `upgrade-insecure-requests`)。`/api/ai` 需登入。登入 `callbackUrl` 僅限同站路徑。
+- SEO 集中在 `lib/seo.ts`(Organization/WebSite/Article/Breadcrumb JSON-LD + canonical);
+  `app/sitemap.ts`、`app/robots.ts`、RSS `app/feed.xml/route.ts` 皆依 `SITE_URL`。
+- 後台流量分析:`PageView` model + `/api/track`(公開輕量)+ `components/public/Tracker.tsx`
+  + `app/admin/analytics`。新資料表 migration 由 `prisma migrate deploy` 自動套用。
+
+## 一次性管理工具（瀏覽器觸發,需 ADMIN 登入 + `MAINT_TOOLS=1`,否則 404）
 
 - `GET /api/restore-from-mifaso` — 從 mifaso.co WordPress REST API 用標題比對,還原 88 篇的
   `featuredImage` + 原始 `content`(含 IG 嵌入)。`?dry=1` 預覽、`?diag=1` 診斷來源。
@@ -51,6 +66,9 @@ npm run db:seed:demo   # 只灌 2 篇示範（prisma/seed.ts，admin@mifaso.com 
   - `?auto=1` 自動分批跑到完(HTML 進度頁,放著別關)
   - `?check=1` 路徑/Volume 健檢(寫 `__healthcheck.txt`)
   - `?media=1` 把 uploads 內圖片登錄進「媒體庫」(`?media=1&dry=1` 預覽)
+- `GET /api/fix-updated-at` — 把 88 篇 `updatedAt` 設為其真實 `publishedAt`
+  (seed 的 updatedAt/createdAt 皆匯入當天,無意義)。`?dry=1` 預覽。**後台列表/總覽
+  現已直接顯示/排序 `publishedAt`,此工具僅在需要修正 DB 值時才用。**
 
 ## 內容/資料
 

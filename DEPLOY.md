@@ -1,4 +1,4 @@
-# LUXE Magazine — Zeabur 部署指南
+# MIFASO 迷髮所 — Zeabur 部署指南
 
 ## 環境需求
 - Node.js 20+
@@ -47,8 +47,8 @@ npm run dev
 ```bash
 git init
 git add .
-git commit -m "init: luxe magazine"
-git remote add origin https://github.com/your-username/luxe-magazine.git
+git commit -m "init: mifaso"
+git remote add origin https://github.com/jason121380/mifaso.git
 git push -u origin main
 ```
 
@@ -75,14 +75,17 @@ git push -u origin main
 | Key | Value |
 |-----|-------|
 | `AUTH_SECRET` | 執行 `openssl rand -base64 32` 取得的值 |
-| `NEXTAUTH_URL` | 你的 Zeabur 網域，如 `https://luxe.zeabur.app` |
-| `SITE_URL` | 同上 |
+| `NEXTAUTH_URL` | 正式網域 `https://mifaso.co`（務必與登入用網域一致，否則後台側欄消失、登入後跳舊網域） |
+| `SITE_URL` | `https://mifaso.co`（canonical / sitemap / RSS / OG 皆依此；缺值會 fallback `https://mifaso.co`） |
 | `NODE_ENV` | `production` |
-| `OPENAI_API_KEY` | OpenAI 金鑰（AI 摘要／SEO／標籤功能用，沒設則 AI 功能停用） |
+| `OPENAI_API_KEY` | OpenAI 金鑰（AI 摘要／SEO／標籤功能用，沒設則 AI 功能停用；`/api/ai` 已要求登入） |
+| `MAINT_TOOLS` | 平時**不設**。需跑一次性維運工具時才暫設 `1`，用完移除（見下方「維運工具」） |
+| `GOOGLE_SITE_VERIFICATION` | 選用，Google Search Console 驗證碼（設了才輸出 meta） |
 
 ### 6. 設定 Persistent Volume（圖片存放）
 1. 點擊 Next.js 服務 → Volumes
-2. 新增 Volume：Mount path = `/app/public/uploads`
+2. 新增 Volume：Mount path = **`/src/public/uploads`**
+   （**不可**用 `/app/...`；Zeabur runtime cwd 是 `/src`，掛錯路徑檔案重新部署就消失）
 
 ### 7. 設定 Build Command
 在 Settings → Build Command 輸入：
@@ -104,10 +107,34 @@ npx tsx -e "import {PrismaClient} from '@prisma/client'; const p=new PrismaClien
 
 ## 部署後確認清單
 - [ ] 前台首頁正常顯示
-- [ ] 後台 /admin/login 可以登入
-- [ ] 文章可以新增/編輯/發布
-- [ ] 圖片上傳正常（Persistent Volume 已掛載）
-- [ ] Sitemap 可訪問：/sitemap.xml
+- [ ] 後台 /admin/login 可以登入，**登入後第一次就有側邊選單**（不需重整）
+- [ ] 文章可以新增/編輯/發布；前台文章已消毒（無 `<script>` 注入）、IG 嵌入正常
+- [ ] 圖片上傳正常（Persistent Volume 已掛載於 `/src/public/uploads`）
+- [ ] Sitemap `/sitemap.xml`、`/robots.txt`、RSS `/feed.xml` 可訪問
+- [ ] `curl -I https://mifaso.co` 有安全標頭（HSTS、X-Content-Type-Options、CSP `upgrade-insecure-requests`），瀏覽器不再「Not Secure」
+- [ ] 未登入 `POST /api/ai` 回 401；未設 `MAINT_TOOLS` 時維運路由回 404
+- [ ] 逛幾頁前台後 `/admin/analytics` 有數據（流量分析）
+
+---
+
+## 維運工具（一次性，預設關閉）
+
+`/api/restore-from-mifaso`、`/api/localize-images`、`/api/fix-updated-at` 皆受
+`MAINT_TOOLS` 控管：**未設 / 非 `1` 時一律回 404**（避免會改資料的 GET 被 CSRF/SSRF）。
+
+要用時：Zeabur `mifaso-tal` 暫設 `MAINT_TOOLS=1` → 重新部署 → 登入 ADMIN 後在瀏覽器開對應網址
+（先 `?dry=1` 預覽）→ 用完**移除 `MAINT_TOOLS`** 再重新部署關閉入口。詳見 `CLAUDE.md`。
+
+## 資料庫密碼輪替（Zeabur PostgreSQL）
+
+只改環境變數**不會**真的換掉密碼（DB 已初始化，env 只在首次初始化生效），順序：
+
+1. PostgreSQL 服務 →「服務狀態」→「指令」執行（帳號見 `POSTGRES_USERNAME`，多為 `root`）：
+   `ALTER USER root WITH PASSWORD '<新強密碼>';`
+2. PostgreSQL 服務 →「環境變數」把 `PASSWORD`、`POSTGRES_PASSWORD` 改成新密碼；
+   `POSTGRES_CONNECTION_STRING`/`POSTGRES_URI` 若是 `${PASSWORD}` 參考型免動，寫死字串才換。
+3. `mifaso-tal` 的 `DATABASE_URL`：參考型自動更新；寫死字串手動換密碼段。
+4. `mifaso-tal` 重新部署 → `/admin` 能登入即成功（步驟間會短暫斷線，挑離峰）。
 
 ---
 
