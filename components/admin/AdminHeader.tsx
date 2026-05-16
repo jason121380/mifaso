@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, Bell } from "lucide-react";
+import { ChevronRight, Menu } from "lucide-react";
 
 const breadcrumbMap: Record<string, string> = {
   dashboard: "總覽",
@@ -14,7 +14,7 @@ const breadcrumbMap: Record<string, string> = {
   new: "新增文章",
 };
 
-export default function AdminHeader({ userName }: { userName: string }) {
+export default function AdminHeader({ userName, onMenu }: { userName: string; onMenu?: () => void }) {
   const pathname = usePathname();
   const segments = pathname.replace("/admin/", "").split("/").filter(Boolean);
 
@@ -24,9 +24,17 @@ export default function AdminHeader({ userName }: { userName: string }) {
   }));
 
   return (
-    <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-8 flex-shrink-0">
+    <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-8 flex-shrink-0 sticky top-0 z-20">
       {/* Breadcrumbs */}
-      <nav className="flex items-center gap-1.5 text-sm">
+      <nav className="flex items-center gap-1.5 text-sm min-w-0 overflow-x-auto">
+        <button
+          type="button"
+          onClick={onMenu}
+          aria-label="開啟選單"
+          className="md:hidden text-gray-600 hover:text-gray-900 mr-1 flex-shrink-0"
+        >
+          <Menu size={20} />
+        </button>
         <Link href="/admin/dashboard" className="text-gray-400 hover:text-gray-700 transition-colors">
           後台
         </Link>

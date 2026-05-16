@@ -15,6 +15,7 @@ import {
   LogOut,
   ExternalLink,
   ChevronRight,
+  X,
 } from "lucide-react";
 
 const navItems = [
@@ -35,22 +36,39 @@ const ROLE_MAP: Record<string, string> = {
 interface SidebarProps {
   userName: string;
   userRole: string;
+  open?: boolean;
+  onClose?: () => void;
 }
 
-export default function Sidebar({ userName, userRole }: SidebarProps) {
+export default function Sidebar({ userName, userRole, open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-white flex flex-col z-30 border-r border-gray-100">
+    <aside
+      className={cn(
+        "fixed left-0 top-0 h-screen w-64 bg-white flex flex-col z-40 border-r border-gray-100 transform transition-transform duration-200 ease-out md:translate-x-0",
+        open ? "translate-x-0" : "-translate-x-full"
+      )}
+    >
       {/* Logo */}
       <div className="px-5 py-4 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <Link href="/" target="_blank" className="flex items-center">
             <Image src="/logo.png" alt="mifaso 迷髮所" width={120} height={48} className="h-10 w-auto object-contain" priority />
           </Link>
-          <Link href="/" target="_blank" className="text-gray-300 hover:text-gray-500 transition-colors">
-            <ExternalLink size={14} />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/" target="_blank" className="text-gray-300 hover:text-gray-500 transition-colors">
+              <ExternalLink size={14} />
+            </Link>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="關閉選單"
+              className="md:hidden text-gray-400 hover:text-gray-700 transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -65,6 +83,7 @@ export default function Sidebar({ userName, userRole }: SidebarProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={onClose}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group",
                   isActive
