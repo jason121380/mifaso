@@ -28,7 +28,7 @@ export default async function DashboardPage() {
       prisma.article.findMany({
         where: authorFilter,
         include: { author: { select: { name: true } }, category: true },
-        orderBy: { updatedAt: "desc" },
+        orderBy: { publishedAt: { sort: "desc", nulls: "last" } },
         take: 6,
       }),
       prisma.article.findMany({
@@ -94,7 +94,7 @@ export default async function DashboardPage() {
           <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Clock size={15} className="text-gray-400" />
-              <h2 className="font-semibold text-gray-900 text-sm">最近更新</h2>
+              <h2 className="font-semibold text-gray-900 text-sm">最新文章</h2>
             </div>
             <Link href="/admin/articles" className="text-xs text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1">
               全部文章 <ArrowRight size={11} />
@@ -119,7 +119,7 @@ export default async function DashboardPage() {
                         <span className="text-xs text-gray-400">{article.category.name}</span>
                       )}
                       <span className="text-gray-200">·</span>
-                      <span className="text-xs text-gray-400">{formatDate(article.updatedAt)}</span>
+                      <span className="text-xs text-gray-400">{formatDate(article.publishedAt ?? article.updatedAt)}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">

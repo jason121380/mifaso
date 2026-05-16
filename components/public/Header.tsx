@@ -25,7 +25,7 @@ export default function Header({ categories }: HeaderProps) {
     <>
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled ? "bg-white border-b border-gray-100 shadow-sm" : "bg-white/95 backdrop-blur-sm"
+          scrolled ? "bg-rose-brand border-b border-white/20 shadow-sm" : "bg-rose-brand/95 backdrop-blur-sm"
         }`}
       >
         {/* Main nav */}
@@ -38,9 +38,9 @@ export default function Header({ categories }: HeaderProps) {
               aria-label="選單"
             >
               <div className="w-5 space-y-1.5">
-                <span className={`block h-px bg-black transition-transform ${menuOpen ? "rotate-45 translate-y-2" : ""}`} />
-                <span className={`block h-px bg-black transition-opacity ${menuOpen ? "opacity-0" : ""}`} />
-                <span className={`block h-px bg-black transition-transform ${menuOpen ? "-rotate-45 -translate-y-2" : ""}`} />
+                <span className={`block h-px bg-white transition-transform ${menuOpen ? "rotate-45 translate-y-2" : ""}`} />
+                <span className={`block h-px bg-white transition-opacity ${menuOpen ? "opacity-0" : ""}`} />
+                <span className={`block h-px bg-white transition-transform ${menuOpen ? "-rotate-45 -translate-y-2" : ""}`} />
               </div>
             </button>
 
@@ -50,7 +50,7 @@ export default function Header({ categories }: HeaderProps) {
                 <Link
                   key={cat.id}
                   href={`/category/${cat.slug}`}
-                  className="text-xs uppercase tracking-widest text-gray-700 hover:text-rose-brand transition-colors font-medium"
+                  className="text-xs uppercase tracking-widest text-white/80 hover:text-white transition-colors font-medium"
                 >
                   {cat.name}
                 </Link>
@@ -59,7 +59,7 @@ export default function Header({ categories }: HeaderProps) {
 
             {/* Logo */}
             <Link href="/" className="flex-shrink-0">
-              <Image src="/logo.png" alt="mifaso 迷髮所" width={140} height={56} className="h-8 md:h-12 w-auto object-contain brightness-0" priority />
+              <Image src="/logo.png" alt="mifaso 迷髮所" width={140} height={56} className="h-8 md:h-12 w-auto object-contain brightness-0 invert" priority />
             </Link>
 
             {/* Desktop nav right */}
@@ -68,7 +68,7 @@ export default function Header({ categories }: HeaderProps) {
                 <Link
                   key={cat.id}
                   href={`/category/${cat.slug}`}
-                  className="text-xs uppercase tracking-widest text-gray-700 hover:text-rose-brand transition-colors font-medium"
+                  className="text-xs uppercase tracking-widest text-white/80 hover:text-white transition-colors font-medium"
                 >
                   {cat.name}
                 </Link>
@@ -79,7 +79,7 @@ export default function Header({ categories }: HeaderProps) {
             <Link
               href="/search"
               aria-label="搜尋"
-              className="flex-shrink-0 text-gray-600 hover:text-rose-brand transition-colors p-1"
+              className="flex-shrink-0 text-white/80 hover:text-white transition-colors p-1"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -91,13 +91,13 @@ export default function Header({ categories }: HeaderProps) {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="fixed inset-0 z-40 bg-white pt-24 px-8 overflow-y-auto" onClick={() => setMenuOpen(false)}>
+        <div className="fixed inset-0 z-40 bg-rose-brand pt-24 px-8 overflow-y-auto" onClick={() => setMenuOpen(false)}>
           <nav className="flex flex-col">
             {categories.map((cat) => (
               <Link
                 key={cat.id}
                 href={`/category/${cat.slug}`}
-                className="font-serif text-lg text-black hover:text-rose-brand transition-colors border-b border-gray-100 py-3"
+                className="font-serif text-lg text-white/90 hover:text-white transition-colors border-b border-white/20 py-3"
                 onClick={() => setMenuOpen(false)}
               >
                 {cat.name}

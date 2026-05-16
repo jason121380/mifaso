@@ -120,7 +120,7 @@ export default function ArticlesPage() {
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">分類</th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">作者</th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">狀態</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden xl:table-cell">更新時間</th>
+                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden xl:table-cell">發布日期</th>
                   <th className="px-6 py-3 w-24" />
                 </tr>
               </thead>
@@ -169,7 +169,7 @@ export default function ArticlesPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 hidden xl:table-cell">
-                      <span className="text-xs text-gray-400">{formatDate(article.updatedAt)}</span>
+                      <span className="text-xs text-gray-400">{formatDate(article.publishedAt ?? article.updatedAt)}</span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
