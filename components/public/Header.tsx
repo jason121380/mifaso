@@ -118,7 +118,7 @@ export default function Header({ categories }: HeaderProps) {
       )}
 
       {/* Spacer */}
-      <div className="h-[58px] md:h-[108px]" />
+      <div className="h-[80px] md:h-[108px]" />
     </>
   );
 }
