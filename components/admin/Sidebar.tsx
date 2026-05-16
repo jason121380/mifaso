@@ -49,7 +49,7 @@ export default function Sidebar({ userName, userRole, open = false, collapsed = 
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-screen w-64 bg-white flex flex-col z-40 border-r border-gray-100 transform transition-transform duration-200 ease-out",
+        "fixed left-0 top-0 h-dvh w-64 bg-white flex flex-col z-40 border-r border-gray-100 transform transition-transform duration-200 ease-out",
         open ? "translate-x-0" : "-translate-x-full",
         collapsed ? "md:-translate-x-full" : "md:translate-x-0"
       )}
@@ -111,7 +111,7 @@ export default function Sidebar({ userName, userRole, open = false, collapsed = 
       </nav>
 
       {/* User section */}
-      <div className="px-3 py-4 border-t border-gray-100">
+      <div className="px-3 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-gray-100 flex-shrink-0">
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gray-50 mb-2">
           <div className="w-8 h-8 rounded-full bg-rose-brand flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
             {userName?.[0]?.toUpperCase() ?? "A"}
