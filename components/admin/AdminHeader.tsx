@@ -14,7 +14,17 @@ const breadcrumbMap: Record<string, string> = {
   new: "新增文章",
 };
 
-export default function AdminHeader({ userName, onMenu }: { userName: string; onMenu?: () => void }) {
+export default function AdminHeader({
+  userName,
+  onMenu,
+  onToggleCollapse,
+  collapsed,
+}: {
+  userName: string;
+  onMenu?: () => void;
+  onToggleCollapse?: () => void;
+  collapsed?: boolean;
+}) {
   const pathname = usePathname();
   const segments = pathname.replace("/admin/", "").split("/").filter(Boolean);
 
@@ -32,6 +42,15 @@ export default function AdminHeader({ userName, onMenu }: { userName: string; on
           onClick={onMenu}
           aria-label="開啟選單"
           className="md:hidden text-gray-600 hover:text-gray-900 mr-1 flex-shrink-0"
+        >
+          <Menu size={20} />
+        </button>
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          aria-label={collapsed ? "展開選單" : "收合選單"}
+          title={collapsed ? "展開選單" : "收合選單"}
+          className="hidden md:inline-flex text-gray-600 hover:text-gray-900 mr-2 flex-shrink-0"
         >
           <Menu size={20} />
         </button>

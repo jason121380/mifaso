@@ -39,17 +39,19 @@ interface SidebarProps {
   userName: string;
   userRole: string;
   open?: boolean;
+  collapsed?: boolean;
   onClose?: () => void;
 }
 
-export default function Sidebar({ userName, userRole, open = false, onClose }: SidebarProps) {
+export default function Sidebar({ userName, userRole, open = false, collapsed = false, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-screen w-64 bg-white flex flex-col z-40 border-r border-gray-100 transform transition-transform duration-200 ease-out md:translate-x-0",
-        open ? "translate-x-0" : "-translate-x-full"
+        "fixed left-0 top-0 h-screen w-64 bg-white flex flex-col z-40 border-r border-gray-100 transform transition-transform duration-200 ease-out",
+        open ? "translate-x-0" : "-translate-x-full",
+        collapsed ? "md:-translate-x-full" : "md:translate-x-0"
       )}
     >
       {/* Logo */}
