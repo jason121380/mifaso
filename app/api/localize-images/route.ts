@@ -67,6 +67,44 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "需要以管理員身分登入後台後再開此連結" }, { status: 401 });
   }
 
+  // 自動版：回傳一個會自己一批批跑到完的頁面
+  if (req.nextUrl.searchParams.get("auto") === "1") {
+    const html = `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>圖片在地化</title>
+<style>body{font-family:system-ui,-apple-system,"PingFang TC",sans-serif;max-width:640px;margin:40px auto;padding:0 20px;color:#222}
+h1{font-size:20px}#log{white-space:pre-wrap;background:#f6f6f6;border-radius:8px;padding:14px;font-size:13px;line-height:1.7;max-height:60vh;overflow:auto}
+.b{font-weight:700}.ok{color:#15803d}.err{color:#b91c1c}</style></head>
+<body><h1>圖片在地化進行中…</h1>
+<p>請<span class="b">不要關閉這個分頁</span>，它會自己一批批跑到完。完成後會顯示「全部完成」。</p>
+<div id="log">啟動中…\n</div>
+<script>
+const log=document.getElementById('log');
+let totalDl=0,totalFail=0,round=0;
+function add(t,c){const s=document.createElement('span');if(c)s.className=c;s.textContent=t+"\\n";log.appendChild(s);log.scrollTop=log.scrollHeight;}
+async function tick(){
+  round++;
+  try{
+    const r=await fetch('/api/localize-images?limit=25',{cache:'no-store'});
+    const j=await r.json();
+    if(j.error){add('錯誤：'+j.error,'err');return;}
+    totalDl+=j.filesDownloaded||0; totalFail+=j.failed||0;
+    add('第 '+round+' 批：本批下載 '+j.filesDownloaded+'、跳過 '+j.filesReused+'、失敗 '+j.failed+' ｜ 累計下載 '+totalDl+' 失敗 '+totalFail);
+    if(j.done){add('✅ 全部完成！累計下載 '+totalDl+' 張，失敗 '+totalFail+'。可以關閉此頁，回前台重新整理確認。','ok');return;}
+    setTimeout(tick,1200);
+  }catch(e){
+    add('這批連線中斷（進度已存，會自動重試）…','err');
+    setTimeout(tick,3000);
+  }
+}
+tick();
+</script></body></html>`;
+    return new NextResponse(html, {
+      status: 200,
+      headers: { "content-type": "text/html; charset=utf-8" },
+    });
+  }
+
   const dry = req.nextUrl.searchParams.get("dry") === "1";
   const limit = Math.max(
     1,
