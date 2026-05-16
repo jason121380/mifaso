@@ -24,9 +24,9 @@ export default async function SearchPage({ searchParams }: Props) {
     status: "PUBLISHED" as const,
     ...(q && {
       OR: [
-        { title: { contains: q } },
-        { excerpt: { contains: q } },
-        { content: { contains: q } },
+        { title: { contains: q, mode: "insensitive" as const } },
+        { excerpt: { contains: q, mode: "insensitive" as const } },
+        { content: { contains: q, mode: "insensitive" as const } },
       ],
     }),
     ...(tag && { tags: { some: { tag: { slug: tag } } } }),

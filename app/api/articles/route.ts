@@ -34,8 +34,8 @@ export async function GET(req: NextRequest) {
   const where: any = {};
   if (status) where.status = status;
   if (search) where.OR = [
-    { title: { contains: search } },
-    { excerpt: { contains: search } },
+    { title: { contains: search, mode: "insensitive" } },
+    { excerpt: { contains: search, mode: "insensitive" } },
   ];
   if (categoryId) where.categoryId = categoryId;
 

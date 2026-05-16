@@ -5,3 +5,7 @@ node_modules/
 public/uploads/
 *.log
 .DS_Store
+
+# Local SQLite dev database (project uses PostgreSQL in all environments)
+prisma/dev.db
+*.db
