@@ -82,3 +82,15 @@
     @apply text-gray-400 pointer-events-none float-left h-0;
   }
 }
+
+/* 文章目錄（前台自動產生） */
+.prose h2, .prose h3, .prose h4 { scroll-margin-top: 6rem; }
+.article-toc { margin: 1.5rem 0 2rem; }
+.article-toc .toc-title { text-align: center; font-weight: 700; font-size: 1.05rem; margin: 0 0 0.75rem; color: #1a1a1a; }
+.article-toc ul { list-style: none; margin: 0; padding: 0; border: 1px solid #d4d4d4; border-radius: 4px; }
+.article-toc li { margin: 0; }
+.article-toc li + li { border-top: 1px solid #ececec; }
+.article-toc li a { display: block; padding: 14px 20px; color: #C4837A; text-decoration: underline; font-size: 1rem; }
+.article-toc li a:hover { background: #FBF4F3; color: #A3635B; }
+.article-toc li.toc-l3 a { padding-left: 40px; font-size: 0.95rem; }
+.article-toc li.toc-l4 a { padding-left: 60px; font-size: 0.9rem; }

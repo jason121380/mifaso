@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { formatDate, stripHtml, truncate } from "@/lib/utils";
+import { renderArticleHtml } from "@/lib/article-html";
 import ArticleCard from "@/components/public/ArticleCard";
 import InstagramEmbed from "@/components/public/InstagramEmbed";
 
@@ -164,7 +165,7 @@ export default async function ArticlePage({ params }: Props) {
         <div className="max-w-3xl mx-auto">
           <div
             className="prose prose-lg prose-headings:font-serif prose-headings:font-bold prose-a:text-rose-brand prose-blockquote:border-l-rose-brand prose-img:rounded-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: article.content }}
+            dangerouslySetInnerHTML={{ __html: renderArticleHtml(article.content) }}
           />
 
           {/* Tags */}

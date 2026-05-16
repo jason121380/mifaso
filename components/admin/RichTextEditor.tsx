@@ -9,6 +9,7 @@ import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import { useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { InstagramEmbed, TableOfContents } from "./tiptap-nodes";
 
 interface Props {
   content: string;
@@ -39,6 +40,8 @@ export default function RichTextEditor({ content, onChange, placeholder = "開�
       Link.configure({ openOnClick: false, HTMLAttributes: { class: "text-rose-brand underline" } }),
       Placeholder.configure({ placeholder }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
+      InstagramEmbed,
+      TableOfContents,
     ],
     content,
     editorProps: {
@@ -67,8 +70,19 @@ export default function RichTextEditor({ content, onChange, placeholder = "開�
     const match = url.match(/instagram\.com\/p\/([A-Za-z0-9_-]+)/);
     if (!match) { alert("無效的 Instagram 網址"); return; }
     const postId = match[1];
-    const embedHtml = `<blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/p/${postId}/" data-instgrm-version="14" style="width:100%;max-width:540px;margin:1em auto;"></blockquote>`;
-    editor.chain().focus().insertContent(embedHtml).run();
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: "instagramEmbed",
+        attrs: { url: `https://www.instagram.com/p/${postId}/` },
+      })
+      .run();
+  }, [editor]);
+
+  const addToc = useCallback(() => {
+    if (!editor) return;
+    editor.chain().focus().insertContent({ type: "tableOfContents" }).run();
   }, [editor]);
 
   const setLink = useCallback(() => {
@@ -112,6 +126,7 @@ export default function RichTextEditor({ content, onChange, placeholder = "開�
         <ToolbarButton onClick={setLink} active={editor.isActive("link")} title="插入連結">🔗</ToolbarButton>
         <ToolbarButton onClick={addImage} active={false} title="插入圖片">🖼</ToolbarButton>
         <ToolbarButton onClick={addInstagram} active={false} title="插入 Instagram 貼文">IG</ToolbarButton>
+        <ToolbarButton onClick={addToc} active={false} title="插入本文目錄（前台依標題自動產生）">目錄</ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().setHorizontalRule().run()} active={false} title="分隔線">—</ToolbarButton>
 
         <div className="w-px bg-gray-200 mx-1" />
