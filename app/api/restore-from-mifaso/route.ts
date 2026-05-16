@@ -6,6 +6,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 const SITE = "https://mifaso.co";
+const UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 
 interface WpPost {
   title: { rendered: string };
@@ -32,20 +34,60 @@ function loose(title: string): string {
     .replace(/[^\p{L}\p{N}]/gu, "");
 }
 
-async function fetchAllPosts(): Promise<WpPost[]> {
-  const all: WpPost[] = [];
-  for (let page = 1; page <= 20; page++) {
-    const url = `${SITE}/wp-json/wp/v2/posts?per_page=100&page=${page}&_embed=wp:featuredmedia`;
-    const res = await fetch(url, { headers: { "User-Agent": "mifaso-restore" } });
-    if (res.status === 400 || res.status === 404) break;
-    if (!res.ok) throw new Error(`WP API ${res.status} at page ${page}`);
-    const batch = (await res.json()) as WpPost[];
-    if (!batch.length) break;
-    all.push(...batch);
-    const totalPages = Number(res.headers.get("x-wp-totalpages") ?? "1");
-    if (page >= totalPages) break;
+async function getJson(url: string): Promise<unknown> {
+  const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "application/json" } });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`HTTP ${res.status} @ ${url} :: ${text.slice(0, 120)}`);
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`非 JSON 回應 @ ${url} (status ${res.status}) :: ${text.slice(0, 120)}`);
   }
-  return all;
+}
+
+async function fetchAllPosts(): Promise<WpPost[]> {
+  const bases = [
+    (p: number) => `${SITE}/wp-json/wp/v2/posts?per_page=100&page=${p}&_embed=wp:featuredmedia`,
+    (p: number) => `${SITE}/?rest_route=/wp/v2/posts&per_page=100&page=${p}&_embed=wp:featuredmedia`,
+  ];
+  let lastErr: unknown;
+  for (const mk of bases) {
+    try {
+      const all: WpPost[] = [];
+      for (let page = 1; page <= 20; page++) {
+        const res = await fetch(mk(page), { headers: { "User-Agent": UA, Accept: "application/json" } });
+        if (res.status === 400 || res.status === 404) break;
+        const text = await res.text();
+        if (!res.ok) throw new Error(`HTTP ${res.status} :: ${text.slice(0, 120)}`);
+        const batch = JSON.parse(text) as WpPost[];
+        if (!batch.length) break;
+        all.push(...batch);
+        const totalPages = Number(res.headers.get("x-wp-totalpages") ?? "1");
+        if (page >= totalPages) break;
+      }
+      if (all.length) return all;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr ?? new Error("WP REST 兩種寫法都失敗");
+}
+
+async function probe(url: string) {
+  try {
+    const res = await fetch(url, { headers: { "User-Agent": UA }, redirect: "follow" });
+    const body = await res.text();
+    return {
+      url,
+      status: res.status,
+      contentType: res.headers.get("content-type"),
+      finalUrl: res.url,
+      length: body.length,
+      snippet: body.slice(0, 300),
+    };
+  } catch (e) {
+    return { url, error: String(e) };
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -55,6 +97,23 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "需要以管理員身分登入後台後再開此連結" }, { status: 401 });
   }
 
+  // 診斷模式：回報各候選來源實際拿到什麼
+  if (req.nextUrl.searchParams.get("diag") === "1") {
+    const targets = [
+      `${SITE}/wp-json/wp/v2/posts?per_page=1`,
+      `${SITE}/?rest_route=/wp/v2/posts&per_page=1`,
+      `${SITE}/wp-json/`,
+      `${SITE}/feed/?paged=1`,
+      `${SITE}/wp-sitemap.xml`,
+      `${SITE}/sitemap_index.xml`,
+      `${SITE}/sitemap.xml`,
+      `${SITE}/`,
+    ];
+    const results = [];
+    for (const t of targets) results.push(await probe(t));
+    return NextResponse.json({ diag: true, results }, { status: 200 });
+  }
+
   const dry = req.nextUrl.searchParams.get("dry") === "1";
 
   let posts: WpPost[];
@@ -62,7 +121,11 @@ export async function GET(req: NextRequest) {
     posts = await fetchAllPosts();
   } catch (e) {
     return NextResponse.json(
-      { error: "抓取 mifaso.co 失敗（WordPress REST API 可能未開放）", detail: String(e) },
+      {
+        error: "抓取 mifaso.co 失敗",
+        detail: String(e),
+        hint: "在這個網址後面改成 ?diag=1 重開一次，把回傳結果貼給我，我再換抓法。",
+      },
       { status: 502 }
     );
   }
@@ -104,7 +167,7 @@ export async function GET(req: NextRequest) {
   };
 
   if (dry) {
-    return NextResponse.json({ ...summary, note: "這是預覽（dry=1），未寫入。確認後拿掉 ?dry=1 再開一次即實際還原。" });
+    return NextResponse.json({ ...summary, note: "預覽（dry=1），未寫入。確認後拿掉 ?dry=1 再開一次即實際還原。" });
   }
 
   let written = 0;
