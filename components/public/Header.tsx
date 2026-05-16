@@ -101,13 +101,13 @@ export default function Header({ categories }: HeaderProps) {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="fixed inset-0 z-40 bg-white pt-32 px-8" onClick={() => setMenuOpen(false)}>
-          <nav className="flex flex-col gap-6">
+        <div className="fixed inset-0 z-40 bg-white pt-24 px-8 overflow-y-auto" onClick={() => setMenuOpen(false)}>
+          <nav className="flex flex-col">
             {categories.map((cat) => (
               <Link
                 key={cat.id}
                 href={`/category/${cat.slug}`}
-                className="font-serif text-2xl text-black hover:text-rose-brand transition-colors border-b border-gray-100 pb-6"
+                className="font-serif text-lg text-black hover:text-rose-brand transition-colors border-b border-gray-100 py-3"
                 onClick={() => setMenuOpen(false)}
               >
                 {cat.name}
