@@ -115,19 +115,19 @@ export default function ArticlesPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="px-4 py-3 w-8" />
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">文章標題</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">分類</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">作者</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">狀態</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden xl:table-cell">發布日期</th>
+                  <th className="px-2 md:px-4 py-3 w-8" />
+                  <th className="text-left px-3 md:px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">文章標題</th>
+                  <th className="text-left px-3 md:px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap hidden md:table-cell">分類</th>
+                  <th className="text-left px-3 md:px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">作者</th>
+                  <th className="text-left px-3 md:px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">狀態</th>
+                  <th className="text-left px-3 md:px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap hidden xl:table-cell">發布日期</th>
                   <th className="px-6 py-3 w-24" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {articles.map((article) => (
                   <tr key={article.id} className="hover:bg-gray-50/50 transition-colors group">
-                    <td className="px-4 py-4">
+                    <td className="px-2 md:px-4 py-4">
                       <button
                         onClick={() => toggleFeatured(article.id, article.featured)}
                         title={article.featured ? "取消精選" : "設為精選"}
@@ -140,22 +140,22 @@ export default function ArticlesPage() {
                         />
                       </button>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 md:px-6 py-4">
                       <div>
-                        <p className="text-sm font-medium text-gray-900 line-clamp-1 max-w-xs">{article.title}</p>
+                        <p className="text-sm font-medium text-gray-900 line-clamp-2">{article.title}</p>
                         {article.excerpt && (
                           <p className="text-xs text-gray-400 mt-0.5 line-clamp-1 max-w-xs hidden lg:block">{article.excerpt}</p>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 hidden md:table-cell">
+                    <td className="px-3 md:px-6 py-4 hidden md:table-cell">
                       {article.category ? (
                         <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-md font-medium">{article.category.name}</span>
                       ) : (
                         <span className="text-gray-300 text-sm">—</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 hidden lg:table-cell">
+                    <td className="px-3 md:px-6 py-4 hidden lg:table-cell">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
                           {article.author?.name?.[0]}
@@ -163,16 +163,16 @@ export default function ArticlesPage() {
                         <span className="text-sm text-gray-600">{article.author?.name}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium ${STATUS_CONFIG[article.status]?.className}`}>
+                    <td className="px-3 md:px-6 py-4">
+                      <span className={`inline-block whitespace-nowrap text-[11px] px-2.5 py-0.5 rounded-full font-medium ${STATUS_CONFIG[article.status]?.className}`}>
                         {STATUS_CONFIG[article.status]?.label}
                       </span>
                     </td>
-                    <td className="px-6 py-4 hidden xl:table-cell">
+                    <td className="px-3 md:px-6 py-4 hidden xl:table-cell">
                       <span className="text-xs text-gray-400">{formatDate(article.publishedAt ?? article.updatedAt)}</span>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                    <td className="px-3 md:px-6 py-4">
+                      <div className="flex items-center gap-1 justify-end opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         {article.status === "PUBLISHED" && (
                           <Link href={`/article/${article.slug}`} target="_blank"
                             className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="前台預覽">

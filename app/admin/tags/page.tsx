@@ -45,7 +45,7 @@ export default function TagsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">標籤管理</h1>
           <p className="text-gray-400 text-sm mt-1">共 {tags.length} 個標籤</p>
@@ -56,7 +56,7 @@ export default function TagsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="搜尋標籤..."
-            className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-rose-brand focus:ring-2 focus:ring-rose-light transition-all w-56"
+            className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-rose-brand focus:ring-2 focus:ring-rose-light transition-all w-full sm:w-56"
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -92,27 +92,28 @@ export default function TagsPage() {
           <div className="w-8 h-8 border-2 border-rose-brand border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {tags.filter(t => t.name.toLowerCase().includes(search.toLowerCase())).map((tag) => (
             <div
               key={tag.id}
-              className="flex items-center justify-between gap-2 bg-white border border-gray-200 px-4 py-2.5 rounded-lg hover:border-rose-brand transition-colors group"
+              className="flex items-center justify-between gap-2 bg-white border border-gray-200 px-3 py-2.5 rounded-lg hover:border-rose-brand transition-colors group"
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm text-gray-700 truncate">{tag.name}</span>
-                <span className="text-xs text-gray-300 flex-shrink-0">{tag._count.articles}</span>
-              </div>
+              <span className="text-sm text-gray-700 break-all leading-snug min-w-0">
+                {tag.name}
+                <span className="text-xs text-gray-300 ml-1.5">{tag._count.articles}</span>
+              </span>
               <button
                 onClick={() => deleteTag(tag.id, tag.name)}
-                className="text-gray-200 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0 text-xs"
+                className="text-gray-300 hover:text-red-500 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 flex-shrink-0 text-xs p-1 -m-1"
                 title="刪除標籤"
+                aria-label={`刪除標籤 ${tag.name}`}
               >
                 ✕
               </button>
             </div>
           ))}
           {tags.filter(t => t.name.toLowerCase().includes(search.toLowerCase())).length === 0 && (
-            <p className="text-gray-300 text-sm col-span-4">{search ? `找不到「${search}」` : "尚無標籤"}</p>
+            <p className="text-gray-300 text-sm col-span-2 sm:col-span-3 lg:col-span-4 xl:col-span-5">{search ? `找不到「${search}」` : "尚無標籤"}</p>
           )}
         </div>
       )}
