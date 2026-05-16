@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { createHash } from "node:crypto";
-import { mkdir, writeFile, access, readdir } from "node:fs/promises";
+import { mkdir, writeFile, access, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 
 export const dynamic = "force-dynamic";
@@ -89,6 +89,74 @@ export async function GET(req: NextRequest) {
       check: true,
       ...info,
       note: "接著開 https://(網域)/uploads/__healthcheck.txt：能看到 healthcheck 文字 = 路徑正確且服務得出來；404 = 路徑不對或 Volume 沒生效。",
+    });
+  }
+
+  // 把 uploads 資料夾裡的圖片登錄進媒體庫（已存在則跳過，可重複執行）
+  if (req.nextUrl.searchParams.get("media") === "1") {
+    const dry = req.nextUrl.searchParams.get("dry") === "1";
+    const userId = (session.user as { id?: string }).id;
+    if (!userId) {
+      return NextResponse.json({ error: "找不到使用者 id" }, { status: 400 });
+    }
+    const MIME: Record<string, string> = {
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".webp": "image/webp",
+      ".gif": "image/gif",
+      ".avif": "image/avif",
+      ".svg": "image/svg+xml",
+    };
+    let files: string[] = [];
+    try {
+      files = await readdir(UPLOAD_DIR);
+    } catch {
+      return NextResponse.json({ error: "讀不到 uploads 目錄" }, { status: 500 });
+    }
+    const images = files.filter((f) => MIME[path.extname(f).toLowerCase()]);
+    let created = 0;
+    let skipped = 0;
+    let failed = 0;
+    for (const f of images) {
+      const url = `/uploads/${f}`;
+      try {
+        const existing = await prisma.media.findFirst({ where: { url } });
+        if (existing) {
+          skipped++;
+          continue;
+        }
+        if (dry) {
+          created++;
+          continue;
+        }
+        const s = await stat(path.join(UPLOAD_DIR, f));
+        await prisma.media.create({
+          data: {
+            filename: f,
+            originalName: f,
+            url,
+            size: s.size,
+            mimeType: MIME[path.extname(f).toLowerCase()] ?? "image/jpeg",
+            userId,
+          },
+        });
+        created++;
+      } catch (e) {
+        failed++;
+        if (failed <= 5) console.error("media register fail", f, e);
+      }
+    }
+    return NextResponse.json({
+      mediaRegister: true,
+      dryRun: dry,
+      imagesOnDisk: images.length,
+      created,
+      skipped,
+      failed,
+      note: dry
+        ? "預覽（dry），未寫入。拿掉 ?dry=1 再開即實際登錄。"
+        : "完成。後台『媒體庫』即可看到這些圖片。可重複執行，已登錄的會自動跳過。",
     });
   }
 
