@@ -6,23 +6,20 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * 一次性維運工具:移除文章內文中的「延伸閱讀」段落(整個 <p>...延伸閱讀...</p>,
- * 含其中的連結)。用 raw SQL 更新 content,繞過 Prisma @updatedAt 自動覆寫。
- * 受 MAINT_TOOLS 控管,需 ADMIN。?dry=1 預覽。
+ * 移除文章內文中的「延伸閱讀」段落(整個 <p>...延伸閱讀...</p>,含其中連結)。
+ * 用 raw SQL 更新 content,不動 Prisma @updatedAt。
+ * 需 ADMIN 登入。預設只預覽;加 ?run=1 才實際寫入(重跑為 no-op,安全)。
  */
 const RE = /<p\b[^>]*>(?:(?!<\/p>)[\s\S])*?延伸閱讀[\s\S]*?<\/p>/gi;
 
 export async function GET(req: NextRequest) {
-  if (process.env.MAINT_TOOLS !== "1") {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
   const session = await auth();
   const role = (session?.user as { role?: string } | undefined)?.role;
   if (!session?.user || role !== "ADMIN") {
-    return NextResponse.json({ error: "需要管理員身分" }, { status: 401 });
+    return NextResponse.json({ error: "需要管理員身分登入後台後再開此連結" }, { status: 401 });
   }
 
-  const dry = req.nextUrl.searchParams.get("dry") === "1";
+  const run = req.nextUrl.searchParams.get("run") === "1";
 
   const articles = await prisma.article.findMany({
     select: { id: true, title: true, content: true },
@@ -47,7 +44,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    if (!dry) {
+    if (run) {
       await prisma.$executeRaw`UPDATE "articles" SET "content" = ${next} WHERE "id" = ${a.id}`;
     }
     changed++;
@@ -55,13 +52,13 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     stripRelatedReading: true,
-    dryRun: dry,
+    executed: run,
     totalArticles: articles.length,
     articlesAffected: changed,
     paragraphsRemoved: removedParagraphs,
     sample,
-    note: dry
-      ? "預覽(dry=1),未寫入。確認 sample 無誤後拿掉 ?dry=1 再開一次即實際移除。"
-      : `完成:已從 ${changed} 篇移除 ${removedParagraphs} 個「延伸閱讀」段落。`,
+    note: run
+      ? `完成:已從 ${changed} 篇移除 ${removedParagraphs} 個「延伸閱讀」段落。`
+      : "預覽模式(未寫入)。確認上方 sample 是要刪的內容後,在網址後面加 ?run=1 再開一次即實際移除。",
   });
 }
