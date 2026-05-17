@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   const user = session?.user as { id?: string; role?: string } | undefined;
   if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId: string = user.id;
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: "尚未設定 OPENAI_API_KEY,無法使用 AI 產文" }, { status: 400 });
   }
@@ -163,7 +164,7 @@ ${styleRef}
           url,
           size: buf.length,
           mimeType: "image/png",
-          userId: user.id,
+          userId,
         },
       });
       return url;
@@ -239,7 +240,7 @@ ${styleRef}
       status: "DRAFT",
       featured: false,
       categoryId: category?.id ?? null,
-      authorId: user.id,
+      authorId: userId,
       metaTitle: (parsed.metaTitle ?? "").trim().slice(0, 120) || null,
       metaDescription: (parsed.metaDescription ?? "").trim().slice(0, 200) || null,
       tags: tagIds.length ? { create: tagIds.map((tagId) => ({ tagId })) } : undefined,
