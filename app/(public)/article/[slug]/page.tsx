@@ -84,12 +84,6 @@ export default async function ArticlePage({ params }: Props) {
 
   if (!article) notFound();
 
-  // Increment view count
-  await prisma.article.update({
-    where: { id: article.id },
-    data: { viewCount: { increment: 1 } },
-  });
-
   // Related articles
   const related = await prisma.article.findMany({
     where: {
@@ -166,8 +160,6 @@ export default async function ArticlePage({ params }: Props) {
                 <span>{formatDate(article.publishedAt)}</span>
               </>
             )}
-            <span className="text-rose-brand">·</span>
-            <span>{article.viewCount} 次閱讀</span>
           </div>
         </header>
 

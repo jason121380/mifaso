@@ -54,6 +54,24 @@ export default function ToolsPage() {
     }
   }, []);
 
+  const [fixing, setFixing] = useState(false);
+  const [fixMsg, setFixMsg] = useState("");
+  const doFixAnchors = useCallback(async () => {
+    setFixing(true);
+    setFixMsg("");
+    try {
+      const res = await fetch("/api/scan-links?fix=1");
+      if (res.status === 401) { setFixMsg("需要以管理員身分登入。"); return; }
+      const j = await res.json();
+      setFixMsg(j?.note ?? "已修復。");
+      await doScan();
+    } catch {
+      setFixMsg("修復失敗,請稍後再試。");
+    } finally {
+      setFixing(false);
+    }
+  }, [doScan]);
+
   const clearCache = useCallback(async () => {
     setClearing(true);
     setCacheMsg("");
@@ -192,14 +210,30 @@ export default function ToolsPage() {
           </p>
         </div>
 
-        <button
-          onClick={doScan}
-          disabled={scanning}
-          className="px-4 py-2 text-sm bg-rose-brand text-white rounded-lg hover:bg-rose-dark transition-colors disabled:opacity-40"
-        >
-          {scanning ? "掃描中…" : "開始掃描"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={doScan}
+            disabled={scanning || fixing}
+            className="px-4 py-2 text-sm bg-rose-brand text-white rounded-lg hover:bg-rose-dark transition-colors disabled:opacity-40"
+          >
+            {scanning ? "掃描中…" : "開始掃描"}
+          </button>
+          {scan && (scan.counts.anchor ?? 0) > 0 && (
+            <button
+              onClick={doFixAnchors}
+              disabled={fixing || scanning}
+              className="px-4 py-2 text-sm border border-rose-brand text-rose-brand rounded-lg hover:bg-rose-light/40 transition-colors disabled:opacity-40"
+            >
+              {fixing ? "修復中…" : `修復錨點連結（${scan.counts.anchor}）`}
+            </button>
+          )}
+        </div>
 
+        {fixMsg && (
+          <p className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+            ✓ {fixMsg}
+          </p>
+        )}
         {scanErr && <p className="text-sm text-red-500">{scanErr}</p>}
 
         {scan && (

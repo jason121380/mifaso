@@ -1,9 +1,79 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+function stripText(s: string): string {
+  return s
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** 把失效的 #錨點 依連結文字對應到同名標題並修好 */
+function repairAnchors(content: string): { content: string; added: number; repointed: number } {
+  const explicitIds = new Set<string>();
+  for (const m of content.matchAll(/\sid=["']([^"']+)["']/gi)) explicitIds.add(m[1]);
+
+  const headings = [
+    ...content.matchAll(/<h([1-6])\b([^>]*)>([\s\S]*?)<\/h\1>/gi),
+  ].map((m) => ({
+    full: m[0],
+    lvl: m[1],
+    attrs: m[2],
+    inner: m[3],
+    text: stripText(m[3]),
+    id: (m[2].match(/\sid=["']([^"']+)["']/i) || [])[1] || null,
+  }));
+
+  let added = 0;
+  let repointed = 0;
+  const usedHeading = new Set<number>();
+  const headingEdits: { from: string; to: string }[] = [];
+  const linkEdits: { from: string; to: string }[] = [];
+
+  for (const lm of content.matchAll(
+    /<a\b[^>]*\bhref=["']#([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi
+  )) {
+    const full = lm[0];
+    const anchorId = decodeURIComponent(lm[1]);
+    if (explicitIds.has(anchorId)) continue; // 已正確
+
+    const text = stripText(lm[2]);
+    if (!text) continue;
+
+    const hi = headings.findIndex((h, i) => !usedHeading.has(i) && h.text === text);
+    if (hi === -1) continue;
+    const h = headings[hi];
+    usedHeading.add(hi);
+
+    if (h.id) {
+      // 標題已有 id → 改連結指向它
+      const to = full.replace(/href=["']#[^"']+["']/i, `href="#${h.id}"`);
+      if (to !== full) { linkEdits.push({ from: full, to }); repointed++; }
+    } else {
+      // 標題沒 id → 補上連結要的 id
+      const newHead = `<h${h.lvl}${h.attrs} id="${anchorId}">${h.inner}</h${h.lvl}>`;
+      headingEdits.push({ from: h.full, to: newHead });
+      explicitIds.add(anchorId);
+      added++;
+    }
+  }
+
+  let out = content;
+  const apply = (from: string, to: string) => {
+    const i = out.indexOf(from);
+    if (i !== -1) out = out.slice(0, i) + to + out.slice(i + from.length);
+  };
+  headingEdits.forEach((e) => apply(e.from, e.to));
+  linkEdits.forEach((e) => apply(e.from, e.to));
+  return { content: out, added, repointed };
+}
 
 function slugify(raw: string): string {
   return (
@@ -40,11 +110,35 @@ interface Bad {
   reason: string;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await auth();
   const role = (session?.user as { role?: string } | undefined)?.role;
   if (!session?.user || role !== "ADMIN") {
     return NextResponse.json({ error: "需要管理員身分登入後台後再開此連結" }, { status: 401 });
+  }
+
+  if (req.nextUrl.searchParams.get("fix") === "1") {
+    const all = await prisma.article.findMany({ select: { id: true, content: true } });
+    let fixedArticles = 0;
+    let addedIds = 0;
+    let repointed = 0;
+    for (const a of all) {
+      if (!a.content) continue;
+      const r = repairAnchors(a.content);
+      if (r.added === 0 && r.repointed === 0) continue;
+      addedIds += r.added;
+      repointed += r.repointed;
+      fixedArticles++;
+      await prisma.$executeRaw`UPDATE "articles" SET "content" = ${r.content} WHERE "id" = ${a.id}`;
+    }
+    if (fixedArticles > 0) revalidatePath("/", "layout");
+    return NextResponse.json({
+      fixed: true,
+      fixedArticles,
+      headingIdsAdded: addedIds,
+      linksRepointed: repointed,
+      note: `完成:修復 ${fixedArticles} 篇,補標題 id ${addedIds} 個、改連結 ${repointed} 個。已清快取。文字對不到標題的錨點無法自動修(需人工)。`,
+    });
   }
 
   const [articles, cats] = await Promise.all([
