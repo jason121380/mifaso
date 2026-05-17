@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { ensurePageViewsTable } from "@/lib/page-views";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -42,6 +43,7 @@ export default async function AnalyticsPage() {
 
   let data: Data | null = null;
   try {
+    await ensurePageViewsTable();
     const [total, todayCount, c7, c30] = await Promise.all([
       prisma.pageView.count(),
       prisma.pageView.count({ where: { createdAt: { gte: today } } }),

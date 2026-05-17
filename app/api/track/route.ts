@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { ensurePageViewsTable } from "@/lib/page-views";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,7 @@ export async function POST(req: NextRequest) {
     const ref = req.headers.get("referer");
     const referrer = ref ? ref.slice(0, 512) : null;
 
+    await ensurePageViewsTable();
     await prisma.pageView.create({
       data: { path: path as string, articleId, referrer },
     });
