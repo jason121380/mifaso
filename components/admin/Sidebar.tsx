@@ -17,9 +17,15 @@ import {
   ChevronRight,
   X,
   BarChart3,
+  Wrench,
 } from "lucide-react";
 
-const navItems = [
+const navItems: {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  adminOnly?: boolean;
+}[] = [
   { href: "/admin/dashboard", label: "總覽", icon: LayoutDashboard },
   { href: "/admin/articles", label: "文章管理", icon: FileText },
   { href: "/admin/categories", label: "分類管理", icon: FolderOpen },
@@ -27,6 +33,7 @@ const navItems = [
   { href: "/admin/media", label: "媒體庫", icon: ImageIcon },
   { href: "/admin/analytics", label: "流量分析", icon: BarChart3 },
   { href: "/admin/users", label: "用戶管理", icon: Users },
+  { href: "/admin/tools", label: "維運工具", icon: Wrench, adminOnly: true },
 ];
 
 const ROLE_MAP: Record<string, string> = {
@@ -80,7 +87,9 @@ export default function Sidebar({ userName, userRole, open = false, collapsed = 
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-3 mb-2">主選單</p>
         <div className="space-y-0.5">
-          {navItems.map((item) => {
+          {navItems
+            .filter((item) => !item.adminOnly || userRole === "ADMIN")
+            .map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             const Icon = item.icon;
             return (
@@ -112,7 +121,7 @@ export default function Sidebar({ userName, userRole, open = false, collapsed = 
 
       {/* User section */}
       <div className="px-3 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-gray-100 flex-shrink-0">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gray-50">
+        <div className="flex items-center gap-3 px-3 py-2.5">
           <div className="w-8 h-8 rounded-full bg-rose-brand flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
             {userName?.[0]?.toUpperCase() ?? "A"}
           </div>
