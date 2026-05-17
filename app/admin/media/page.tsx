@@ -84,13 +84,13 @@ export default function MediaPage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="font-serif text-3xl font-bold text-gray-900">媒體庫</h1>
+          <h1 className="text-2xl font-bold text-gray-900">媒體庫</h1>
           <p className="text-gray-400 text-sm mt-1">{media.length} / {total} 張圖片</p>
         </div>
         <button
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="bg-black text-white px-6 py-3 text-sm uppercase tracking-widest hover:bg-rose-dark transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 bg-rose-brand text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-rose-dark transition-colors shadow-sm disabled:opacity-50"
         >
           {uploading ? "上傳中..." : "⊞ 上傳圖片"}
         </button>
@@ -107,7 +107,7 @@ export default function MediaPage() {
 
       {/* Drop zone */}
       <div
-        className="border-2 border-dashed border-gray-200 p-8 text-center mb-8 hover:border-rose-brand transition-colors cursor-pointer"
+        className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center mb-8 hover:border-rose-brand transition-colors cursor-pointer"
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => { e.preventDefault(); handleUpload(e.dataTransfer.files); }}
@@ -181,13 +181,13 @@ export default function MediaPage() {
 
             <button
               onClick={() => copyUrl(selected.url)}
-              className="w-full border border-gray-200 text-gray-600 py-2 text-xs uppercase tracking-widest hover:border-rose-brand hover:text-rose-brand transition-colors mb-2"
+              className="w-full border border-gray-200 text-gray-600 py-2 text-sm rounded-lg hover:border-rose-brand hover:text-rose-brand transition-colors mb-2"
             >
               {copied === selected.url ? "已複製！" : "複製網址"}
             </button>
             <button
               onClick={() => deleteMedia(selected.id)}
-              className="w-full border border-red-100 text-red-400 py-2 text-xs uppercase tracking-widest hover:bg-red-50 transition-colors"
+              className="w-full border border-red-100 text-red-500 py-2 text-sm rounded-lg hover:bg-red-50 transition-colors"
             >
               刪除圖片
             </button>

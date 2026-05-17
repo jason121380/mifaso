@@ -55,12 +55,12 @@ export default function CategoriesPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="font-serif text-3xl font-bold text-gray-900">分類管理</h1>
+        <h1 className="text-2xl font-bold text-gray-900">分類管理</h1>
         <button
           onClick={() => { resetForm(); setShowForm(true); }}
-          className="bg-black text-white px-6 py-3 text-sm uppercase tracking-widest hover:bg-rose-dark transition-colors"
+          className="flex items-center gap-2 bg-rose-brand text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-rose-dark transition-colors shadow-sm"
         >
-          ＋ 新增分類
+          <span className="text-base leading-none">＋</span> 新增分類
         </button>
       </div>
 
