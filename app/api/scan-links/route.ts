@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { flushFront } from "@/lib/flush-cache";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { SITE_URL } from "@/lib/seo";
@@ -142,7 +142,7 @@ export async function GET(req: NextRequest) {
       fixedArticles++;
       await prisma.$executeRaw`UPDATE "articles" SET "content" = ${r.content} WHERE "id" = ${a.id}`;
     }
-    if (fixedArticles > 0) revalidatePath("/", "layout");
+    if (fixedArticles > 0) await flushFront();
     return NextResponse.json({
       fixed: true,
       fixedArticles,

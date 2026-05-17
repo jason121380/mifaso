@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { flushFront } from "@/lib/flush-cache";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { saveBackups, restoreBackups, backupInfo } from "@/lib/content-backup";
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
   }
   if (req.nextUrl.searchParams.get("restore") === "1") {
     const n = await restoreBackups(OP);
-    if (n > 0) revalidatePath("/", "layout");
+    if (n > 0) await flushFront();
     return NextResponse.json({
       restored: true,
       restoredArticles: n,
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
       await prisma.$executeRaw`UPDATE "articles" SET "content" = ${e.next} WHERE "id" = ${e.id}`;
       fixed += e.fixed;
     }
-    revalidatePath("/", "layout");
+    await flushFront();
   }
   const backup = await backupInfo(OP);
   return NextResponse.json({
