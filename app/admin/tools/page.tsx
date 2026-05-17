@@ -16,6 +16,7 @@ interface TidyItem {
   fixedHeadings: number;
   removedTocs: number;
   removedRelated: number;
+  removedDeadLinks: number;
   bytesBefore: number;
   bytesAfter: number;
 }
@@ -398,7 +399,7 @@ export default function ToolsPage() {
                       <span className="min-w-0">
                         <span className="block text-sm font-medium text-gray-800 truncate">{it.title}</span>
                         <span className="block text-xs text-gray-400 mt-0.5">
-                          標題 {it.fixedHeadings}・目錄 {it.removedTocs}・延伸閱讀 {it.removedRelated}・
+                          標題 {it.fixedHeadings}・目錄 {it.removedTocs}・延伸閱讀 {it.removedRelated}・失效連結 {it.removedDeadLinks}・
                           內容 {it.bytesBefore} → {it.bytesAfter} 字元
                         </span>
                       </span>
