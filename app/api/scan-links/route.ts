@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { SITE_URL } from "@/lib/seo";
+
+const SITE_HOST = (() => {
+  try { return new URL(SITE_URL).host.replace(/^www\./, "").replace(/\./g, "\\."); }
+  catch { return "mifaso\\.co"; }
+})();
+// 自家網域的絕對連結(含 http/https、www、zeabur)視同站內路徑
+const SELF_RE = new RegExp(
+  `^https?://(www\\.)?(${SITE_HOST}|mifaso\\.co|mifaso\\.zeabur\\.app)`,
+  "i"
+);
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -173,16 +184,21 @@ export async function GET(req: NextRequest) {
       } else if (href.startsWith("#")) {
         const id = decodeURIComponent(href.slice(1));
         if (!ids.has(id)) { type = "anchor"; reason = `頁內錨點 #${id} 找不到對應標題`; }
-      } else if (href.startsWith("//")) {
-        type = "protocol-relative"; reason = "協定相對連結(//),建議改 https://";
-      } else if (/^http:\/\//i.test(href)) {
-        type = "insecure"; reason = "http:// 連結(混合內容,建議改 https://)";
-      } else if (href.startsWith("/article/")) {
-        const slug = decodeURIComponent(href.split("?")[0].split("#")[0].replace("/article/", "").replace(/\/$/, ""));
-        if (!articleSlugs.has(slug)) { type = "dead-internal"; reason = `站內文章連結失效:/article/${slug}`; }
-      } else if (href.startsWith("/category/")) {
-        const slug = decodeURIComponent(href.split("?")[0].replace("/category/", "").replace(/\/$/, ""));
-        if (!categorySlugs.has(slug)) { type = "dead-internal"; reason = `站內分類連結失效:/category/${slug}`; }
+      } else {
+        const isSelf = SELF_RE.test(href);
+        const path = isSelf ? href.replace(SELF_RE, "") || "/" : href;
+
+        if (!isSelf && href.startsWith("//")) {
+          type = "protocol-relative"; reason = "協定相對連結(//),建議改 https://";
+        } else if (!isSelf && /^http:\/\//i.test(href)) {
+          type = "insecure"; reason = "http:// 連結(混合內容,建議改 https://)";
+        } else if (path.startsWith("/article/")) {
+          const slug = decodeURIComponent(path.split("?")[0].split("#")[0].replace("/article/", "").replace(/\/$/, ""));
+          if (!articleSlugs.has(slug)) { type = "dead-internal"; reason = `站內文章連結失效:/article/${slug}`; }
+        } else if (path.startsWith("/category/")) {
+          const slug = decodeURIComponent(path.split("?")[0].replace("/category/", "").replace(/\/$/, ""));
+          if (!categorySlugs.has(slug)) { type = "dead-internal"; reason = `站內分類連結失效:/category/${slug}`; }
+        }
       }
 
       if (type) {
