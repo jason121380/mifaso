@@ -86,16 +86,23 @@
 /* ---- 前台文章內容(WordPress HTML)手機 RWD + 目錄 ---- */
 .prose img,
 .prose figure,
-.prose iframe,
-.prose video,
-.prose blockquote.instagram-media {
+.prose video {
   max-width: 100% !important;
   height: auto;
 }
 .prose figure { margin: 1.5rem 0; }
-/* 影片用 iframe(YouTube/Vimeo)維持 16:9;Instagram 的 iframe 由 embed.js
-   自行決定高度,不可套 aspect-ratio,否則貼文會被裁切 */
-.prose iframe:not(.instagram-media) { width: 100%; aspect-ratio: 16 / 9; }
+/* Instagram:完全交給 embed.js 控制高度,只防溢出,不設 height/aspect-ratio,
+   否則貼文會被裁切 */
+.prose blockquote.instagram-media,
+.prose iframe.instagram-media {
+  max-width: 100% !important;
+}
+/* 影片用 iframe(YouTube/Vimeo)維持 16:9 */
+.prose iframe:not(.instagram-media) {
+  max-width: 100% !important;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
 .prose { overflow-wrap: anywhere; }
 /* 中和 WordPress 對齊類別,避免手機浮動爆版 */
 .prose .alignleft,
@@ -119,28 +126,30 @@
 
 /* 自動產生的目錄(編輯器插入 <div data-toc> 時) */
 .article-toc {
-  margin: 1.5rem 0 2rem;
-  border: 1px solid #e5e7eb;
+  margin: 1.25rem 0 1.75rem;
+  border: 1px solid #ececec;
   border-radius: 0.5rem;
-  padding: 1rem 1.25rem;
-  background: #fafafa;
+  padding: 0.75rem 1rem;
+  background: transparent;
 }
 .article-toc .toc-title {
   font-weight: 700;
-  text-align: center;
-  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  margin: 0 0 0.25rem;
   color: #1a1a1a;
 }
 .article-toc ul { list-style: none; margin: 0; padding: 0; }
-.article-toc li {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #eee;
-  font-size: 0.95rem;
-}
-.article-toc li:last-child { border-bottom: 0; }
+.article-toc li { margin: 0; }
 .article-toc li.toc-l3 { padding-left: 1rem; }
 .article-toc li.toc-l4 { padding-left: 2rem; }
-.article-toc a { color: #C4837A; text-decoration: none; }
+.article-toc a {
+  display: block;
+  padding: 0.28rem 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #C4837A;
+  text-decoration: none;
+}
 .article-toc a:hover { text-decoration: underline; }
 
 /* 文章目錄（前台自動產生） */
