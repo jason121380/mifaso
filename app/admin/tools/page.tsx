@@ -10,6 +10,23 @@ interface Preview {
   sample: { title: string; removed: string[] }[];
 }
 
+interface ScanItem {
+  title: string;
+  slug: string;
+  href: string;
+  text: string;
+  type: string;
+  reason: string;
+}
+interface ScanResult {
+  scannedArticles: number;
+  totalLinks: number;
+  issues: number;
+  truncated: boolean;
+  counts: Record<string, number>;
+  items: ScanItem[];
+}
+
 export default function ToolsPage() {
   const [data, setData] = useState<Preview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,6 +36,23 @@ export default function ToolsPage() {
   const [doneMsg, setDoneMsg] = useState("");
   const [clearing, setClearing] = useState(false);
   const [cacheMsg, setCacheMsg] = useState("");
+  const [scan, setScan] = useState<ScanResult | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanErr, setScanErr] = useState("");
+
+  const doScan = useCallback(async () => {
+    setScanning(true);
+    setScanErr("");
+    try {
+      const res = await fetch("/api/scan-links");
+      if (res.status === 401) { setScanErr("需要以管理員身分登入。"); return; }
+      setScan((await res.json()) as ScanResult);
+    } catch {
+      setScanErr("掃描失敗,請稍後再試。");
+    } finally {
+      setScanning(false);
+    }
+  }, []);
 
   const clearCache = useCallback(async () => {
     setClearing(true);
@@ -144,6 +178,82 @@ export default function ToolsPage() {
         >
           {clearing ? "清除中…" : "清除前台快取"}
         </button>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
+        <div>
+          <h2 className="font-semibold text-gray-900">掃描無效連結</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            靜態掃描所有文章:空 / <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">javascript:</code> /
+            協定相對 / <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">http://</code> 混合內容、
+            頁內錨點對不到標題、站內 <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">/article</code>、
+            <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">/category</code> 連結失效。
+            (不檢查外部網站是否存活。)
+          </p>
+        </div>
+
+        <button
+          onClick={doScan}
+          disabled={scanning}
+          className="px-4 py-2 text-sm bg-rose-brand text-white rounded-lg hover:bg-rose-dark transition-colors disabled:opacity-40"
+        >
+          {scanning ? "掃描中…" : "開始掃描"}
+        </button>
+
+        {scanErr && <p className="text-sm text-red-500">{scanErr}</p>}
+
+        {scan && (
+          <>
+            <div className="flex flex-wrap gap-6 text-sm">
+              <span>掃描文章:<b className="text-gray-900">{scan.scannedArticles}</b></span>
+              <span>連結總數:<b className="text-gray-900">{scan.totalLinks}</b></span>
+              <span>
+                問題連結:
+                <b className={scan.issues ? "text-red-600" : "text-emerald-600"}>{scan.issues}</b>
+              </span>
+            </div>
+
+            {Object.keys(scan.counts).length > 0 && (
+              <div className="flex flex-wrap gap-2 text-xs">
+                {Object.entries(scan.counts).map(([k, n]) => (
+                  <span key={k} className="bg-gray-100 text-gray-600 rounded-full px-2.5 py-0.5">
+                    {k}:{n}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {scan.issues === 0 ? (
+              <p className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+                ✓ 沒有發現無效連結。
+              </p>
+            ) : (
+              <div className="border border-gray-100 rounded-lg divide-y divide-gray-50 max-h-[420px] overflow-y-auto">
+                {scan.items.map((it, i) => (
+                  <div key={i} className="px-4 py-3">
+                    <p className="text-sm font-medium text-gray-800 truncate">{it.title}</p>
+                    <p className="text-xs text-red-500 mt-0.5">{it.reason}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 break-all">
+                      連結:<code>{it.href || "(空)"}</code>
+                      {it.text && <>　文字:「{it.text}」</>}
+                    </p>
+                    <a
+                      href={`/article/${it.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-rose-brand hover:underline"
+                    >
+                      開啟文章前台 ↗
+                    </a>
+                  </div>
+                ))}
+                {scan.truncated && (
+                  <p className="px-4 py-3 text-xs text-gray-400">已達顯示上限,請先修正後再掃描一次。</p>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {confirming && (
