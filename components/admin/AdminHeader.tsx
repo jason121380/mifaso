@@ -10,7 +10,9 @@ const breadcrumbMap: Record<string, string> = {
   categories: "分類管理",
   tags: "標籤管理",
   media: "媒體庫",
+  analytics: "流量分析",
   users: "用戶管理",
+  tools: "工程工具",
   new: "新增文章",
 };
 

@@ -7,9 +7,10 @@ import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { InstagramEmbed, TableOfContents, HeadingId } from "./tiptap-nodes";
+import MediaPicker from "./MediaPicker";
 
 interface Props {
   content: string;
@@ -94,6 +95,11 @@ export default function RichTextEditor({ content, onChange, placeholder = "開�
   const [anchorId, setAnchorId] = useState("");
   const [anchorErr, setAnchorErr] = useState("");
   const [imgUrl, setImgUrl] = useState("");
+  const [imgTab, setImgTab] = useState<"media" | "upload" | "url">("media");
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState("");
+  const [showPicker, setShowPicker] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [igUrl, setIgUrl] = useState("");
   const [igErr, setIgErr] = useState("");
 
@@ -161,7 +167,7 @@ export default function RichTextEditor({ content, onChange, placeholder = "開�
   const openAnchor = useCallback(() => {
     if (!editor) return;
     if (!editor.isActive("heading")) {
-      setAnchorErr("請先把游標放在要設錨點的「標題」上,再開此視窗。");
+      setAnchorErr("錨點一定要設在標題上。請先把游標點進 H1 / H2 / H3 標題那一行,再開此視窗。");
       setAnchorId("");
       setModal("anchor");
       return;
@@ -180,11 +186,41 @@ export default function RichTextEditor({ content, onChange, placeholder = "開�
     closeModal();
   };
 
-  const openImage = useCallback(() => { setImgUrl(""); setModal("image"); }, []);
-  const applyImage = () => {
-    const url = imgUrl.trim();
+  const openImage = useCallback(() => {
+    setImgUrl(""); setUploadErr(""); setImgTab("media"); setModal("image");
+  }, []);
+  const insertImage = useCallback((url: string) => {
     if (url && editor) editor.chain().focus().setImage({ src: url }).run();
+  }, [editor]);
+  const applyImageUrl = () => {
+    const url = imgUrl.trim();
+    if (url) insertImage(url);
     closeModal();
+  };
+  const pickFromMedia = () => {
+    setModal(null);
+    setShowPicker(true);
+  };
+  const handleUpload = async (file: File | undefined) => {
+    if (!file) return;
+    setUploading(true);
+    setUploadErr("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok || !data?.url) {
+        setUploadErr(data?.error ?? "上傳失敗");
+        return;
+      }
+      insertImage(data.url);
+      closeModal();
+    } catch {
+      setUploadErr("上傳失敗,請稍後再試。");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const openInstagram = useCallback(() => { setIgUrl(""); setIgErr(""); setModal("instagram"); }, []);
@@ -318,6 +354,9 @@ export default function RichTextEditor({ content, onChange, placeholder = "開�
                     <input autoFocus type="text" value={anchorId} onChange={(e) => setAnchorId(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") applyAnchor(); }}
                       placeholder="section-1" className={inputCls} />
+                    <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                      ※ 錨點只能設在 <b>H1 / H2 / H3</b> 標題上。設好後,在「目錄」或文字選取後用 🔗 →「段落錨點」連到此標題即可同頁跳轉。
+                    </p>
                   </div>
                 )}
                 <div className="flex justify-end gap-2 mt-5">
@@ -332,13 +371,52 @@ export default function RichTextEditor({ content, onChange, placeholder = "開�
             {modal === "image" && (
               <>
                 <h3 className="text-base font-semibold text-gray-900 mb-4">插入圖片</h3>
-                <label className="block text-xs text-gray-500 mb-1.5">圖片網址</label>
-                <input autoFocus type="text" value={imgUrl} onChange={(e) => setImgUrl(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") applyImage(); }}
-                  placeholder="https://.../image.jpg" className={inputCls} />
+                <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-md">
+                  {([["media", "媒體庫"], ["upload", "本機上傳"], ["url", "外部網址"]] as const).map(([k, label]) => (
+                    <button key={k} type="button" onClick={() => { setImgTab(k); setUploadErr(""); }}
+                      className={cn("flex-1 py-1.5 text-sm rounded transition-colors", imgTab === k ? "bg-white shadow-sm font-medium text-gray-900" : "text-gray-500")}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {imgTab === "media" && (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-500 mb-3">從已上傳的媒體庫挑選圖片。</p>
+                    <button type="button" onClick={pickFromMedia}
+                      className="px-4 py-2 text-sm bg-rose-brand text-white rounded-lg hover:bg-rose-dark transition-colors">
+                      開啟媒體庫
+                    </button>
+                  </div>
+                )}
+
+                {imgTab === "upload" && (
+                  <div className="text-center py-4">
+                    <input ref={fileRef} type="file" accept="image/*" className="hidden"
+                      onChange={(e) => handleUpload(e.target.files?.[0])} />
+                    <p className="text-sm text-gray-500 mb-3">從這台裝置選一張圖片上傳。</p>
+                    <button type="button" disabled={uploading} onClick={() => fileRef.current?.click()}
+                      className="px-4 py-2 text-sm bg-rose-brand text-white rounded-lg hover:bg-rose-dark transition-colors disabled:opacity-40">
+                      {uploading ? "上傳中…" : "選擇檔案上傳"}
+                    </button>
+                    {uploadErr && <p className="text-xs text-red-500 mt-2">{uploadErr}</p>}
+                  </div>
+                )}
+
+                {imgTab === "url" && (
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1.5">圖片網址</label>
+                    <input autoFocus type="text" value={imgUrl} onChange={(e) => setImgUrl(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") applyImageUrl(); }}
+                      placeholder="https://.../image.jpg" className={inputCls} />
+                  </div>
+                )}
+
                 <div className="flex justify-end gap-2 mt-5">
                   <button type="button" onClick={closeModal} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-800">取消</button>
-                  <button type="button" onClick={applyImage} className="px-4 py-2 text-sm bg-rose-brand text-white rounded-md hover:bg-rose-dark transition-colors">插入</button>
+                  {imgTab === "url" && (
+                    <button type="button" onClick={applyImageUrl} className="px-4 py-2 text-sm bg-rose-brand text-white rounded-md hover:bg-rose-dark transition-colors">插入</button>
+                  )}
                 </div>
               </>
             )}
@@ -359,6 +437,13 @@ export default function RichTextEditor({ content, onChange, placeholder = "開�
             )}
           </div>
         </div>
+      )}
+
+      {showPicker && (
+        <MediaPicker
+          onSelect={(url) => insertImage(url)}
+          onClose={() => setShowPicker(false)}
+        />
       )}
     </div>
   );

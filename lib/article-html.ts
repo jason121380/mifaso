@@ -48,7 +48,11 @@ const SANITIZE_OPTS: sanitizeHtml.IOptions = {
   nonTextTags: ["script", "style", "textarea", "option", "noscript"],
   transformTags: {
     a: (tagName, attribs) => {
-      if (attribs.target === "_blank") {
+      // 站內錨點(#section)一律同頁滾動,不開新分頁
+      if (attribs.href && attribs.href.startsWith("#")) {
+        delete attribs.target;
+        delete attribs.rel;
+      } else if (attribs.target === "_blank") {
         attribs.rel = "noopener noreferrer";
       }
       return { tagName, attribs };

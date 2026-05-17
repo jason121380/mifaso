@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
@@ -6,11 +7,13 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * 移除文章內文中的「延伸閱讀」段落(整個 <p>...延伸閱讀...</p>,含其中連結)。
+ * 移除文章內文中的「延伸閱讀」段落(整個 <p>...延伸閱讀...</p>,含其中連結;
+ * 若推薦連結被放在「延伸閱讀:」的下一個 <p>,也一併移除)。
  * 用 raw SQL 更新 content,不動 Prisma @updatedAt。
  * 需 ADMIN 登入。預設只預覽;加 ?run=1 才實際寫入(重跑為 no-op,安全)。
  */
-const RE = /<p\b[^>]*>(?:(?!<\/p>)[\s\S])*?延伸閱讀[\s\S]*?<\/p>/gi;
+const RE =
+  /<p\b[^>]*>(?:(?!<\/p>)[\s\S])*?延伸閱讀[\s\S]*?<\/p>(?:\s*<p\b[^>]*>(?:\s|<strong>|<em>|<b>|<i>)*<a\b[\s\S]*?<\/a>(?:\s|<\/strong>|<\/em>|<\/b>|<\/i>)*<\/p>)?/gi;
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -50,15 +53,21 @@ export async function GET(req: NextRequest) {
     changed++;
   }
 
+  if (run && changed > 0) {
+    // 文章頁是 ISR(revalidate=300),改完要主動清快取才會即時更新
+    revalidatePath("/", "layout");
+  }
+
   return NextResponse.json({
     stripRelatedReading: true,
     executed: run,
+    revalidated: run && changed > 0,
     totalArticles: articles.length,
     articlesAffected: changed,
     paragraphsRemoved: removedParagraphs,
     sample,
     note: run
-      ? `完成:已從 ${changed} 篇移除 ${removedParagraphs} 個「延伸閱讀」段落。`
+      ? `完成:已從 ${changed} 篇移除 ${removedParagraphs} 個「延伸閱讀」段落。已清快取,前台稍候(或強制重整)即更新。`
       : "預覽模式(未寫入)。確認上方 sample 是要刪的內容後,在網址後面加 ?run=1 再開一次即實際移除。",
   });
 }

@@ -127,15 +127,14 @@
 /* 自動產生的目錄(編輯器插入 <div data-toc> 時) */
 .article-toc {
   margin: 1.25rem 0 1.75rem;
-  border: 1px solid #ececec;
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
+  border: 0;
+  padding: 0;
   background: transparent;
 }
 .article-toc .toc-title {
   font-weight: 700;
-  font-size: 0.95rem;
-  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
   color: #1a1a1a;
 }
 .article-toc ul { list-style: none; margin: 0; padding: 0; }
@@ -144,13 +143,13 @@
 .article-toc li.toc-l4 { padding-left: 2rem; }
 .article-toc a {
   display: block;
-  padding: 0.28rem 0;
-  font-size: 0.9rem;
-  line-height: 1.45;
+  padding: 0.3rem 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
   color: #C4837A;
-  text-decoration: none;
+  text-decoration: none !important;
 }
-.article-toc a:hover { text-decoration: underline; }
+.article-toc a:hover { color: #A3635B; text-decoration: none !important; }
 
 /* 文章目錄（前台自動產生） */
 .prose h2, .prose h3, .prose h4 { scroll-margin-top: 6rem; }

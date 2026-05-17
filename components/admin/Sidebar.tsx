@@ -33,7 +33,7 @@ const navItems: {
   { href: "/admin/media", label: "媒體庫", icon: ImageIcon },
   { href: "/admin/analytics", label: "流量分析", icon: BarChart3 },
   { href: "/admin/users", label: "用戶管理", icon: Users },
-  { href: "/admin/tools", label: "維運工具", icon: Wrench, adminOnly: true },
+  { href: "/admin/tools", label: "工程工具", icon: Wrench, adminOnly: true },
 ];
 
 const ROLE_MAP: Record<string, string> = {
