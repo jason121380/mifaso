@@ -140,13 +140,13 @@ ${styleRef}
   }
 
   // 產生並存檔一張圖,回傳 URL(失敗回 null,不影響文章建立)
-  async function genImage(p: string, size: "1792x1024" | "1024x1024"): Promise<string | null> {
+  async function genImage(p: string, size: "1536x1024" | "1024x1024"): Promise<string | null> {
     try {
       const img = await client().images.generate({
-        model: "dall-e-3",
+        model: "gpt-image-1",
         prompt: `${p}. Editorial fashion / hair / lifestyle photography, soft natural light, realistic, no text, no watermark, high quality.`,
         size,
-        response_format: "b64_json",
+        quality: "medium",
         n: 1,
       });
       const b64 = img.data?.[0]?.b64_json;
@@ -175,7 +175,7 @@ ${styleRef}
 
   let featuredImage: string | null = null;
   if (withImage && parsed.featuredImagePrompt) {
-    featuredImage = await genImage(parsed.featuredImagePrompt, "1792x1024");
+    featuredImage = await genImage(parsed.featuredImagePrompt, "1536x1024");
   }
 
   // 內文配圖(最多 3 張),插在指定 <h2> 之後
