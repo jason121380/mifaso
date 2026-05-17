@@ -16,6 +16,7 @@ interface NormResult {
   manualTocsRemoved: number;
   executed: boolean;
   sample: { title: string; tocRemoved: number; bytesBefore: number; bytesAfter: number }[];
+  backup?: { count: number; at: string | null };
 }
 
 interface ScanItem {
@@ -86,6 +87,22 @@ export default function ToolsPage() {
   const [normConfirm, setNormConfirm] = useState(false);
   const [normRunning, setNormRunning] = useState(false);
   const [normMsg, setNormMsg] = useState("");
+  const [normRestoring, setNormRestoring] = useState(false);
+
+  const restoreNorm = useCallback(async () => {
+    setNormRestoring(true);
+    setNormMsg("");
+    try {
+      const res = await fetch("/api/normalize-content?restore=1");
+      if (res.status === 401) { setNormErr("需要以管理員身分登入。"); return; }
+      const j = await res.json();
+      setNormMsg(j?.note ?? "已復原。");
+    } catch {
+      setNormMsg("復原失敗,請稍後再試。");
+    } finally {
+      setNormRestoring(false);
+    }
+  }, []);
 
   const loadNorm = useCallback(async (run = false) => {
     setNormErr("");
@@ -267,7 +284,21 @@ export default function ToolsPage() {
           >
             {!norm || norm.articlesChanged === 0 ? "無可整理項目" : "確認整理"}
           </button>
+          {(norm?.backup?.count ?? 0) > 0 && (
+            <button
+              onClick={restoreNorm}
+              disabled={normRestoring || normRunning}
+              className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:border-gray-500 transition-colors disabled:opacity-40"
+            >
+              {normRestoring ? "復原中…" : `復原上次整理（${norm?.backup?.count}）`}
+            </button>
+          )}
         </div>
+        {(norm?.backup?.count ?? 0) > 0 && (
+          <p className="text-xs text-gray-400">
+            有上次整理前的備份({norm?.backup?.count} 篇,可一鍵復原)。
+          </p>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">

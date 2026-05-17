@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { saveBackups, restoreBackups, backupInfo } from "@/lib/content-backup";
+
+const OP = "normalize";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -23,7 +26,8 @@ function stripManualTocs(html: string): { html: string; removed: number } {
     /<table\b[^>]*>(?:(?!<\/table>)[\s\S])*?本文目錄[\s\S]*?<\/table>/gi,
     /<h[1-6]\b[^>]*>(?:(?!<\/h[1-6]>)[\s\S])*?本文目錄[\s\S]*?<\/h[1-6]>\s*<ul\b[\s\S]*?<\/ul>/gi,
     /<p\b[^>]*>(?:(?!<\/p>)[\s\S])*?本文目錄[\s\S]*?<\/p>\s*<ul\b[\s\S]*?<\/ul>/gi,
-    /<div\b(?![^>]*\bdata-toc)[^>]*>(?:(?!<\/div>)[\s\S])*?本文目錄[\s\S]*?<\/div>/gi,
+    // 安全版:不可有巢狀 div、長度有上限,只吃真正的 TOC 小區塊(不會吃到內文容器)
+    /<div\b(?![^>]*\bdata-toc)[^>]*>(?:(?!<\/?div\b)[\s\S]){0,1200}?本文目錄(?:(?!<\/?div\b)[\s\S]){0,2500}?<\/div>/gi,
     /<p\b[^>]*>(?:(?!<\/p>)[\s\S])*?本文目錄[\s\S]*?<\/p>/gi,
   ];
   for (const re of patterns) {
@@ -65,14 +69,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "需要管理員身分登入後台後再開此連結" }, { status: 401 });
   }
   const run = req.nextUrl.searchParams.get("run") === "1";
+  const restore = req.nextUrl.searchParams.get("restore") === "1";
+
+  if (restore) {
+    const n = await restoreBackups(OP);
+    if (n > 0) revalidatePath("/", "layout");
+    return NextResponse.json({
+      restored: true,
+      restoredArticles: n,
+      note: n > 0 ? `已復原 ${n} 篇文章到整理前的內容。已清快取。` : "沒有可復原的備份。",
+    });
+  }
 
   const articles = await prisma.article.findMany({
     select: { id: true, title: true, content: true },
   });
 
-  let changed = 0;
   let tocsRemoved = 0;
   const sample: { title: string; tocRemoved: number; bytesBefore: number; bytesAfter: number }[] = [];
+  const edits: { id: string; before: string; next: string }[] = [];
 
   for (const a of articles) {
     if (!a.content) continue;
@@ -95,6 +110,7 @@ export async function GET(req: NextRequest) {
 
     if (next !== before) {
       tocsRemoved += removed;
+      edits.push({ id: a.id, before, next });
       if (sample.length < 5) {
         sample.push({
           title: (a.title ?? "").slice(0, 36),
@@ -103,25 +119,31 @@ export async function GET(req: NextRequest) {
           bytesAfter: next.length,
         });
       }
-      if (run) {
-        await prisma.$executeRaw`UPDATE "articles" SET "content" = ${next} WHERE "id" = ${a.id}`;
-      }
-      changed++;
     }
   }
 
-  if (run && changed > 0) revalidatePath("/", "layout");
+  if (run && edits.length > 0) {
+    // 先整批備份原始內容(可一鍵復原),再寫入
+    await saveBackups(OP, edits.map((e) => ({ articleId: e.id, content: e.before })));
+    for (const e of edits) {
+      await prisma.$executeRaw`UPDATE "articles" SET "content" = ${e.next} WHERE "id" = ${e.id}`;
+    }
+    revalidatePath("/", "layout");
+  }
+
+  const backup = await backupInfo(OP);
 
   return NextResponse.json({
     normalizeContent: true,
     executed: run,
-    revalidated: run && changed > 0,
+    revalidated: run && edits.length > 0,
     totalArticles: articles.length,
-    articlesChanged: changed,
+    articlesChanged: edits.length,
     manualTocsRemoved: tocsRemoved,
     sample,
+    backup,
     note: run
-      ? `完成:整理了 ${changed} 篇,移除 ${tocsRemoved} 個手動目錄並統一為自動目錄。已清快取。`
-      : "預覽模式(未寫入)。確認 sample 後加 ?run=1 再開一次即實際執行。",
+      ? `完成:整理了 ${edits.length} 篇,移除 ${tocsRemoved} 個手動目錄並統一為自動目錄。已備份原內容(可一鍵復原)、已清快取。`
+      : "預覽模式(未寫入)。確認 sample 後按「確認整理」即執行;執行後可用「復原上次整理」還原。",
   });
 }
