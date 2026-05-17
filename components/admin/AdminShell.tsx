@@ -52,7 +52,6 @@ export default function AdminShell({
         } flex min-h-screen flex-col min-w-0 transition-[margin] duration-200 ease-out`}
       >
         <AdminHeader
-          userName={userName}
           onMenu={() => setOpen(true)}
           onToggleCollapse={toggleCollapsed}
           collapsed={collapsed}

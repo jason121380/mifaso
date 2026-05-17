@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
         category: true,
         tags: { include: { tag: true } },
       },
-      orderBy: [{ featured: "desc" }, { updatedAt: "desc" }],
+      orderBy: [{ featured: "desc" }, { publishedAt: { sort: "desc", nulls: "last" } }],
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),

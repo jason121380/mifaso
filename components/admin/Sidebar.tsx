@@ -112,7 +112,7 @@ export default function Sidebar({ userName, userRole, open = false, collapsed = 
 
       {/* User section */}
       <div className="px-3 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-gray-100 flex-shrink-0">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gray-50 mb-2">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gray-50">
           <div className="w-8 h-8 rounded-full bg-rose-brand flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
             {userName?.[0]?.toUpperCase() ?? "A"}
           </div>
@@ -120,14 +120,15 @@ export default function Sidebar({ userName, userRole, open = false, collapsed = 
             <p className="text-sm font-medium text-gray-900 truncate">{userName}</p>
             <p className="text-xs text-gray-400">{ROLE_MAP[userRole] ?? userRole}</p>
           </div>
+          <button
+            onClick={() => signOut({ callbackUrl: "/admin/login" })}
+            aria-label="登出"
+            title="登出"
+            className="flex-shrink-0 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+          >
+            <LogOut size={16} />
+          </button>
         </div>
-        <button
-          onClick={() => signOut({ callbackUrl: "/admin/login" })}
-          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-        >
-          <LogOut size={15} />
-          <span>登出</span>
-        </button>
       </div>
     </aside>
   );

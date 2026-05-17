@@ -15,12 +15,10 @@ const breadcrumbMap: Record<string, string> = {
 };
 
 export default function AdminHeader({
-  userName,
   onMenu,
   onToggleCollapse,
   collapsed,
 }: {
-  userName: string;
   onMenu?: () => void;
   onToggleCollapse?: () => void;
   collapsed?: boolean;
@@ -70,20 +68,6 @@ export default function AdminHeader({
           </span>
         ))}
       </nav>
-
-      {/* Right side */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/admin/articles/new"
-          className="hidden md:flex items-center gap-1.5 bg-rose-brand text-white text-xs font-medium px-4 py-2 rounded-lg hover:bg-rose-dark transition-colors"
-        >
-          <span className="text-base leading-none">+</span>
-          新增文章
-        </Link>
-        <div className="w-8 h-8 rounded-full bg-rose-brand flex items-center justify-center text-white text-xs font-semibold">
-          {userName?.[0]?.toUpperCase() ?? "A"}
-        </div>
-      </div>
     </header>
   );
 }
