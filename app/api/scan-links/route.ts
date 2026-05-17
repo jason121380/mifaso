@@ -198,6 +198,15 @@ export async function GET(req: NextRequest) {
         } else if (path.startsWith("/category/")) {
           const slug = decodeURIComponent(path.split("?")[0].replace("/category/", "").replace(/\/$/, ""));
           if (!categorySlugs.has(slug)) { type = "dead-internal"; reason = `站內分類連結失效:/category/${slug}`; }
+        } else if (isSelf) {
+          const clean = path.split("?")[0].split("#")[0];
+          if (
+            clean !== "/" && clean !== "" &&
+            !/^\/(search|feed|sitemap|robots|uploads|admin|api|_next)/.test(clean)
+          ) {
+            type = "dead-internal";
+            reason = `站內連結失效(舊版/非文章路徑):${clean}`;
+          }
         }
       }
 

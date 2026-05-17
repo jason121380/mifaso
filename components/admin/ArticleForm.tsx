@@ -45,6 +45,29 @@ export default function ArticleForm({ initialData, categories, allTags, mode }: 
   const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [tagSearch, setTagSearch] = useState("");
   const [showTagDropdown, setShowTagDropdown] = useState(false);
+  const [titleSuggestions, setTitleSuggestions] = useState<string[]>([]);
+
+  async function suggestTitles() {
+    setAiLoading("titles");
+    setTitleSuggestions([]);
+    try {
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "titles", title: form.title, content: form.content }),
+      });
+      const data = await res.json();
+      if (!data.result) return;
+      const list = String(data.result)
+        .split("\n")
+        .map((s: string) => s.replace(/^\s*\d+[.、)]\s*/, "").replace(/^[-・*]\s*/, "").trim())
+        .filter(Boolean)
+        .slice(0, 6);
+      setTitleSuggestions(list);
+    } finally {
+      setAiLoading(null);
+    }
+  }
 
   async function generateAI(type: "excerpt" | "metaTitle" | "metaDescription" | "tags") {
     setAiLoading(type);
@@ -137,16 +160,43 @@ export default function ArticleForm({ initialData, categories, allTags, mode }: 
 
           {/* Title */}
           <div className="bg-white rounded-xl border border-gray-100 p-6">
-            <label className={labelCls}>文章標題 <span className="text-red-400">*</span></label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className={labelCls + " mb-0"}>文章標題 <span className="text-red-400">*</span></label>
+              <button
+                type="button"
+                onClick={suggestTitles}
+                disabled={(!form.title && !form.content) || aiLoading === "titles"}
+                title="依主題/內文產生高點擊率標題"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-rose-50 text-rose-brand hover:bg-rose-dark hover:text-white transition-colors disabled:opacity-40 font-medium"
+              >
+                {aiLoading === "titles" ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                AI 精靈
+              </button>
+            </div>
             <input
               type="text"
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
               onBlur={handleTitleBlur}
-              placeholder="輸入吸引人的標題..."
+              placeholder="輸入吸引人的標題,或先寫主題/內文再按 AI 精靈..."
               className="w-full font-serif text-2xl border-0 border-b-2 border-gray-100 focus:border-rose-brand focus:outline-none py-2 placeholder:text-gray-200 transition-colors bg-transparent"
               required
             />
+            {titleSuggestions.length > 0 && (
+              <div className="mt-3 space-y-1.5">
+                <p className="text-xs text-gray-400">點選套用(高點擊率建議):</p>
+                {titleSuggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => { set("title", s); setTitleSuggestions([]); }}
+                    className="block w-full text-left text-sm px-3 py-2 rounded-lg border border-gray-200 hover:border-rose-brand hover:bg-rose-50 transition-colors"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Slug */}

@@ -10,17 +10,37 @@ export const runtime = "nodejs";
 
 const OP = "tidy";
 
-// 整段只有一個失效 /article/<slug> 連結的 <p> → 移除(slug 不在已發布清單)
-function stripDeadRelatedLinks(html: string, valid: Set<string>): { html: string; n: number } {
+// 整段只有一個「站內連結但不是有效文章/分類路徑」的 <p> → 移除
+// (涵蓋舊版 WP 連結:/article/失效slug、/category/失效、/<中文標題>/、/?p=123 …)
+function stripDeadRelatedLinks(
+  html: string,
+  validArticle: Set<string>,
+  validCategory: Set<string>
+): { html: string; n: number } {
   let n = 0;
   const re =
-    /<p\b[^>]*>\s*(?:<(?:strong|em|b|i)>\s*)*<a\b[^>]*\bhref="(\/article\/[^"]+)"[^>]*>[\s\S]*?<\/a>\s*(?:<\/(?:strong|em|b|i)>\s*)*<\/p>/gi;
-  const out = html.replace(re, (full, href: string) => {
-    const slug = decodeURIComponent(
-      href.split("?")[0].split("#")[0].replace("/article/", "").replace(/\/$/, "")
-    );
-    if (!valid.has(slug)) { n++; return ""; }
-    return full;
+    /<p\b[^>]*>\s*(?:<(?:strong|em|b|i)>\s*)*<a\b[^>]*\bhref=("[^"]*"|'[^']*')[^>]*>[\s\S]*?<\/a>\s*(?:<\/(?:strong|em|b|i)>\s*)*<\/p>/gi;
+  const out = html.replace(re, (full, q: string) => {
+    let href = q.slice(1, -1).trim();
+    if (!href) { n++; return ""; }                       // 空連結整段移除
+    if (/^(#|mailto:|tel:)/i.test(href)) return full;     // 錨點/信箱/電話保留
+    const wasSelf = /^https?:\/\/(www\.)?(mifaso\.co|mifaso\.zeabur\.app)/i.test(href);
+    href = href.replace(/^https?:\/\/(www\.)?(mifaso\.co|mifaso\.zeabur\.app)/i, "");
+    if (!wasSelf && /^https?:\/\//i.test(href)) return full; // 真正的外部連結保留
+    let path = (href || "/").split("?")[0].split("#")[0];
+    if (path === "/" || path === "") return full;
+    let m: RegExpMatchArray | null;
+    if ((m = path.match(/^\/article\/(.+?)\/?$/))) {
+      if (validArticle.has(decodeURIComponent(m[1]))) return full;
+      n++; return "";
+    }
+    if ((m = path.match(/^\/category\/(.+?)\/?$/))) {
+      if (validCategory.has(decodeURIComponent(m[1]))) return full;
+      n++; return "";
+    }
+    if (/^\/(search|feed|sitemap|robots|uploads|admin|api|_next)/.test(path)) return full;
+    // 其餘站內路徑(舊版 WP permalink 等)整段就是壞掉的相關連結 → 移除
+    n++; return "";
   });
   return { html: out, n };
 }
@@ -37,17 +57,21 @@ interface Edit {
 }
 
 async function collectEdits(): Promise<{ edits: Edit[]; total: number }> {
-  const articles = await prisma.article.findMany({
-    select: { id: true, title: true, content: true, slug: true, status: true },
-  });
+  const [articles, cats] = await Promise.all([
+    prisma.article.findMany({
+      select: { id: true, title: true, content: true, slug: true, status: true },
+    }),
+    prisma.category.findMany({ select: { slug: true } }),
+  ]);
   const validSlugs = new Set(
     articles.filter((a) => a.status === "PUBLISHED").map((a) => a.slug)
   );
+  const validCats = new Set(cats.map((c) => c.slug));
   const edits: Edit[] = [];
   for (const a of articles) {
     if (!a.content) continue;
     const r = tidyArticleContent(a.content);
-    const dl = stripDeadRelatedLinks(r.html, validSlugs);
+    const dl = stripDeadRelatedLinks(r.html, validSlugs, validCats);
     const next = dl.html;
     if (next !== a.content) {
       edits.push({

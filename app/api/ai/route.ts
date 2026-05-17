@@ -16,7 +16,13 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { type, title, content, availableTags } = body;
 
-  if (!title) return NextResponse.json({ error: "需要文章標題" }, { status: 400 });
+  if (type === "titles") {
+    if (!title && !content) {
+      return NextResponse.json({ error: "需要主題或內文" }, { status: 400 });
+    }
+  } else if (!title) {
+    return NextResponse.json({ error: "需要文章標題" }, { status: 400 });
+  }
 
   const plainText = content
     ? content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 1500)
@@ -64,13 +70,25 @@ export async function POST(req: NextRequest) {
 文章內容片段：${plainText}
 可用標籤列表：${availableTags}`;
 
+  } else if (type === "titles") {
+    prompt = `你是台灣時尚美髮媒體「MIFASO 迷髮所」的資深編輯與內容行銷高手。
+根據以下主題與內文,寫出 6 個「高點擊率」的繁體中文文章標題。
+規則:
+- 繁體中文、台灣用語,符合美髮/時尚/生活美學調性
+- 具體、有畫面或數字、能勾起好奇或痛點(例:數字盤點、How-to、季節時事、common mistake)
+- 每個 18~32 字,不要浮誇農場標、不要加引號或書名號、不要編號
+- 一行一個,只輸出 6 行標題,不要任何說明
+
+主題 / 目前標題:${title || "(未提供,請依內文發想)"}
+內文片段:${plainText || "(無)"}`;
+
   } else {
     return NextResponse.json({ error: "未知類型" }, { status: 400 });
   }
 
   const completion = await getClient().chat.completions.create({
     model: "gpt-4o-mini",
-    max_tokens: 300,
+    max_tokens: type === "titles" ? 700 : 300,
     messages: [{ role: "user", content: prompt }],
   });
 

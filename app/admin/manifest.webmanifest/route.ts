@@ -5,7 +5,7 @@ export function GET() {
     name: "MIFASO 後台",
     short_name: "MIFASO 後台",
     description: "MIFASO 迷髮所 內容管理後台",
-    start_url: "/admin",
+    start_url: "/admin/dashboard",
     scope: "/admin",
     display: "standalone",
     background_color: "#ffffff",

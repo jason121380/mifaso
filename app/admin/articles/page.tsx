@@ -274,8 +274,7 @@ export default function ArticlesPage() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-5">
             <h3 className="text-base font-semibold text-gray-900 mb-1">AI 自動產文</h3>
             <p className="text-xs text-gray-400 mb-4">
-              依本站既有 88 篇的風格撰寫一篇新文章,自動配封面圖;建立為<b>草稿</b>供你檢視。
-              (Instagram 需真實貼文網址,系統不會捏造,請於編輯器用 IG 按鈕補上。)
+              依本站既有 88 篇的風格撰寫一篇新文章,自動配封面圖,並視相關性嵌入站內既有的<b>真實</b> Instagram 貼文(不捏造)。建立為<b>草稿</b>供你檢視。
             </p>
 
             <label className="block text-xs text-gray-500 mb-1.5">文章主題</label>

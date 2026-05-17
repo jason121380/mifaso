@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   const user = session?.user as { id?: string; role?: string } | undefined;
   if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId: string = user.id;
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: "尚未設定 OPENAI_API_KEY,無法使用 AI 產文" }, { status: 400 });
   }
@@ -42,6 +43,21 @@ export async function POST(req: NextRequest) {
     prisma.category.findMany({ select: { name: true, slug: true } }),
     prisma.tag.findMany({ select: { name: true }, take: 60 }),
   ]);
+
+  // 蒐集站內既有文章用過的「真實」 Instagram 貼文網址(供模型挑選嵌入,絕不捏造)
+  const igSource = await prisma.article.findMany({
+    where: { status: "PUBLISHED", content: { contains: "instagram-media" } },
+    select: { content: true },
+    take: 60,
+  });
+  const igSet = new Set<string>();
+  for (const r of igSource) {
+    for (const m of r.content.matchAll(/data-instgrm-permalink="([^"]+)"/gi)) {
+      const u = m[1].split("?")[0];
+      if (/^https:\/\/www\.instagram\.com\/(p|reel|tv)\//i.test(u)) igSet.add(u);
+    }
+  }
+  const igAllowed = [...igSet].slice(0, 12);
 
   const styleRef = samples
     .map((s, i) => `範例${i + 1}標題：${s.title}\n摘要：${s.excerpt ?? ""}\n內文片段：${strip(s.content, 500)}`)
@@ -66,15 +82,23 @@ ${styleRef}
 - HTML;第一個元素固定是 <div data-toc="true"></div>(本站會自動產生目錄)
 - 接著一段開場 <p>;之後用數個 <h2> 分段,每段 2~4 個 <p>;可用 <h3> 細分;結尾一段總結 <p>
 - 純文字約 900~1600 字;標題簡短(勿把整段塞進 <h>)
-- 不要放 <script>、不要捏造外部連結或 Instagram 連結、不要放圖片標籤(圖片由系統另外處理)
+- 不要放 <script>、不要捏造外部連結、不要放圖片標籤(圖片由系統另外處理)
+- Instagram:可在「相關且合適」的段落後嵌入 1~2 則,格式固定為
+  <blockquote class="instagram-media" data-instgrm-permalink="網址" data-instgrm-version="14"></blockquote>
+  網址**只能**從下方清單挑選,**嚴禁自行編造或修改**;若清單都不相關就完全不要放
+  可用 Instagram 網址清單:${igAllowed.length ? igAllowed.join(" 、 ") : "(無,請勿放 IG)"}
 - 用語、段落感、實用建議的寫法要貼近上面範例
 
+內文配圖(bodyImages):提供 2~3 張要插入內文的圖片;每張一句英文攝影風格描述(prompt),
+並指定 afterHeading = 內文中某個 <h2> 的「完整文字」(系統會把圖插在那個 <h2> 之後)、alt 為繁中說明。
+
 只輸出以下 JSON:
-{"title":"...","excerpt":"80~120字摘要","content":"<div data-toc=\\"true\\"></div>...","categorySlug":"上面其中一個 slug 或空字串","tagNames":["..."],"metaTitle":"含 | MIFASO 迷髮所,<=70字元","metaDescription":"120~155字元","featuredImagePrompt":"一句英文,描述適合當封面的攝影風格圖(人像/髮型/生活感,無文字浮水印)"}`;
+{"title":"...","excerpt":"80~120字摘要","content":"<div data-toc=\\"true\\"></div>...","categorySlug":"上面其中一個 slug 或空字串","tagNames":["..."],"metaTitle":"含 | MIFASO 迷髮所,<=70字元","metaDescription":"120~155字元","featuredImagePrompt":"一句英文,描述適合當封面的攝影風格圖(人像/髮型/生活感,無文字浮水印)","bodyImages":[{"prompt":"english photo desc","afterHeading":"內文某個 h2 的完整文字","alt":"繁中說明"}]}`;
 
   let parsed: {
     title?: string; excerpt?: string; content?: string; categorySlug?: string;
     tagNames?: string[]; metaTitle?: string; metaDescription?: string; featuredImagePrompt?: string;
+    bodyImages?: { prompt?: string; afterHeading?: string; alt?: string }[];
   };
   try {
     const c = await client().chat.completions.create({
@@ -97,45 +121,94 @@ ${styleRef}
   if (!content) return NextResponse.json({ error: "AI 未回傳內文" }, { status: 502 });
   if (!/data-toc/i.test(content)) content = '<div data-toc="true"></div>\n' + content;
 
+  // 安全:移除任何「不在站內既有真實清單」的 Instagram 嵌入(防模型捏造)
+  content = content.replace(
+    /<blockquote\b[^>]*class="[^"]*instagram-media[^"]*"[^>]*>[\s\S]*?<\/blockquote>/gi,
+    (bq) => {
+      const m = bq.match(/data-instgrm-permalink="([^"]+)"/i);
+      const u = m ? m[1].split("?")[0] : "";
+      return u && igSet.has(u)
+        ? `<blockquote class="instagram-media" data-instgrm-permalink="${u}" data-instgrm-version="14"></blockquote>`
+        : "";
+    }
+  );
+
   // slug 唯一
   let slug = generateSlug(title) || `ai-${Date.now().toString(36)}`;
   if (await prisma.article.findUnique({ where: { slug } })) {
     slug = `${slug}-${Date.now().toString(36)}`;
   }
 
-  // 封面圖(best-effort)
-  let featuredImage: string | null = null;
-  if (withImage && parsed.featuredImagePrompt) {
+  // 產生並存檔一張圖,回傳 URL(失敗回 null,不影響文章建立)
+  async function genImage(p: string, size: "1536x1024" | "1024x1024"): Promise<string | null> {
     try {
       const img = await client().images.generate({
-        model: "dall-e-3",
-        prompt: `${parsed.featuredImagePrompt}. Editorial fashion/hair photography, soft natural light, no text, no watermark, high quality.`,
-        size: "1792x1024",
-        response_format: "b64_json",
+        model: "gpt-image-1",
+        prompt: `${p}. Editorial fashion / hair / lifestyle photography, soft natural light, realistic, no text, no watermark, high quality.`,
+        size,
+        quality: "medium",
         n: 1,
       });
       const b64 = img.data?.[0]?.b64_json;
-      if (b64) {
-        const buf = Buffer.from(b64, "base64");
-        const folder = "ai";
-        const dir = join(process.cwd(), "public", "uploads", folder);
-        await mkdir(dir, { recursive: true });
-        const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
-        await writeFile(join(dir, filename), buf);
-        featuredImage = `/uploads/${folder}/${filename}`;
-        await prisma.media.create({
-          data: {
-            filename,
-            originalName: `${title}.png`,
-            url: featuredImage,
-            size: buf.length,
-            mimeType: "image/png",
-            userId: user.id,
-          },
-        });
-      }
+      if (!b64) return null;
+      const buf = Buffer.from(b64, "base64");
+      const dir = join(process.cwd(), "public", "uploads", "ai");
+      await mkdir(dir, { recursive: true });
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+      await writeFile(join(dir, filename), buf);
+      const url = `/uploads/ai/${filename}`;
+      await prisma.media.create({
+        data: {
+          filename,
+          originalName: `${title}.png`,
+          url,
+          size: buf.length,
+          mimeType: "image/png",
+          userId,
+        },
+      });
+      return url;
     } catch {
-      /* 圖片失敗不影響文章建立 */
+      return null;
+    }
+  }
+
+  let featuredImage: string | null = null;
+  if (withImage && parsed.featuredImagePrompt) {
+    featuredImage = await genImage(parsed.featuredImagePrompt, "1536x1024");
+  }
+
+  // 內文配圖(最多 3 張),插在指定 <h2> 之後
+  if (withImage) {
+    const imgs = (parsed.bodyImages ?? []).filter((b) => b?.prompt).slice(0, 3);
+    for (const bi of imgs) {
+      const url = await genImage(String(bi.prompt), "1024x1024");
+      if (!url) continue;
+      const alt = (bi.alt ?? title).toString().replace(/"/g, "").slice(0, 120);
+      const fig = `\n<figure><img src="${url}" alt="${alt}" /><figcaption>${alt}</figcaption></figure>\n`;
+      const want = (bi.afterHeading ?? "").replace(/<[^>]*>/g, "").trim();
+      let inserted = false;
+      if (want) {
+        const re = /<h2\b[^>]*>([\s\S]*?)<\/h2>/gi;
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(content))) {
+          if (m[1].replace(/<[^>]*>/g, "").trim().includes(want.slice(0, 12))) {
+            const at = m.index + m[0].length;
+            content = content.slice(0, at) + fig + content.slice(at);
+            inserted = true;
+            break;
+          }
+        }
+      }
+      if (!inserted) {
+        const firstClose = content.indexOf("</h2>");
+        if (firstClose !== -1) {
+          const at = firstClose + 5;
+          content = content.slice(0, at) + fig + content.slice(at);
+        } else {
+          content += fig;
+        }
+      }
     }
   }
 
@@ -167,7 +240,7 @@ ${styleRef}
       status: "DRAFT",
       featured: false,
       categoryId: category?.id ?? null,
-      authorId: user.id,
+      authorId: userId,
       metaTitle: (parsed.metaTitle ?? "").trim().slice(0, 120) || null,
       metaDescription: (parsed.metaDescription ?? "").trim().slice(0, 200) || null,
       tags: tagIds.length ? { create: tagIds.map((tagId) => ({ tagId })) } : undefined,
