@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/utils";
-import { FileText, Search, Plus, Eye, Pencil, Trash2, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Search, Plus, Eye, Pencil, Trash2, Star, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   PUBLISHED: { label: "已發布", className: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" },
@@ -18,6 +19,49 @@ export default function ArticlesPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
+  const router = useRouter();
+
+  // AI 自動產文
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiTopic, setAiTopic] = useState("");
+  const [aiTopics, setAiTopics] = useState<string[]>([]);
+  const [aiTopicsLoading, setAiTopicsLoading] = useState(false);
+  const [aiWithImage, setAiWithImage] = useState(true);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiErr, setAiErr] = useState("");
+
+  const openAi = useCallback(async () => {
+    setAiOpen(true); setAiErr(""); setAiTopic("");
+    if (aiTopics.length === 0) {
+      setAiTopicsLoading(true);
+      try {
+        const r = await fetch("/api/ai/topics");
+        const j = await r.json();
+        setAiTopics(j?.topics ?? []);
+      } catch { /* ignore */ }
+      finally { setAiTopicsLoading(false); }
+    }
+  }, [aiTopics.length]);
+
+  async function generateArticle() {
+    const topic = aiTopic.trim();
+    if (!topic) { setAiErr("請先輸入或選擇主題"); return; }
+    setAiBusy(true); setAiErr("");
+    try {
+      const r = await fetch("/api/ai/generate-article", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic, withImage: aiWithImage }),
+      });
+      const j = await r.json();
+      if (!r.ok) { setAiErr(j?.error ?? "產生失敗"); return; }
+      router.push(`/admin/articles/${j.id}`);
+    } catch {
+      setAiErr("產生失敗,請稍後再試。");
+    } finally {
+      setAiBusy(false);
+    }
+  }
 
   const fetchArticles = useCallback(async () => {
     setLoading(true);
@@ -55,13 +99,22 @@ export default function ArticlesPage() {
           <h1 className="text-2xl font-bold text-gray-900">文章管理</h1>
           <p className="text-sm text-gray-400 mt-1">共 {meta.total} 篇文章</p>
         </div>
-        <Link
-          href="/admin/articles/new"
-          className="flex items-center gap-2 bg-rose-brand text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-rose-dark transition-colors shadow-sm"
-        >
-          <Plus size={15} />
-          新增文章
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={openAi}
+            className="flex items-center gap-2 border border-rose-brand text-rose-brand text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-rose-light/40 transition-colors"
+          >
+            <Sparkles size={15} />
+            AI 自動產文
+          </button>
+          <Link
+            href="/admin/articles/new"
+            className="flex items-center gap-2 bg-rose-brand text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-rose-dark transition-colors shadow-sm"
+          >
+            <Plus size={15} />
+            新增文章
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -212,6 +265,72 @@ export default function ArticlesPage() {
           </>
         )}
       </div>
+
+      {aiOpen && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4"
+          onMouseDown={(e) => { if (e.target === e.currentTarget && !aiBusy) setAiOpen(false); }}
+        >
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-5">
+            <h3 className="text-base font-semibold text-gray-900 mb-1">AI 自動產文</h3>
+            <p className="text-xs text-gray-400 mb-4">
+              依本站既有 88 篇的風格撰寫一篇新文章,自動配封面圖;建立為<b>草稿</b>供你檢視。
+              (Instagram 需真實貼文網址,系統不會捏造,請於編輯器用 IG 按鈕補上。)
+            </p>
+
+            <label className="block text-xs text-gray-500 mb-1.5">文章主題</label>
+            <input
+              autoFocus
+              type="text"
+              value={aiTopic}
+              onChange={(e) => { setAiTopic(e.target.value); setAiErr(""); }}
+              onKeyDown={(e) => { if (e.key === "Enter") generateArticle(); }}
+              placeholder="例:2025 秋冬顯白染髮色推薦"
+              className="w-full border border-gray-200 focus:border-rose-brand focus:ring-2 focus:ring-rose-light outline-none px-3 py-2.5 text-sm rounded-lg transition-all"
+            />
+
+            <div className="mt-3">
+              <p className="text-xs text-gray-500 mb-1.5">主題建議{aiTopicsLoading && "(載入中…)"}</p>
+              <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                {aiTopics.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => { setAiTopic(t); setAiErr(""); }}
+                    className="text-xs px-2.5 py-1 rounded-full border border-gray-200 text-gray-600 hover:border-rose-brand hover:text-rose-brand transition-colors"
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 mt-4 text-sm text-gray-600 cursor-pointer">
+              <input type="checkbox" checked={aiWithImage} onChange={(e) => setAiWithImage(e.target.checked)} className="accent-rose-brand" />
+              自動產生封面圖(AI 繪圖,較花時間)
+            </label>
+
+            {aiErr && <p className="text-sm text-red-500 mt-3">{aiErr}</p>}
+
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                onClick={() => setAiOpen(false)}
+                disabled={aiBusy}
+                className="px-4 py-2 text-sm text-gray-500 hover:text-gray-800 disabled:opacity-40"
+              >
+                取消
+              </button>
+              <button
+                onClick={generateArticle}
+                disabled={aiBusy}
+                className="px-4 py-2 text-sm bg-rose-brand text-white rounded-lg hover:bg-rose-dark transition-colors disabled:opacity-50"
+              >
+                {aiBusy ? "AI 撰寫中…(約 20~60 秒)" : "產生草稿"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

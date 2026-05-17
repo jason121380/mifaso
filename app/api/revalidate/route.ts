@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { flushFront } from "@/lib/flush-cache";
 import { auth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export async function GET() {
   if (!session?.user || role !== "ADMIN") {
     return NextResponse.json({ error: "需要管理員身分" }, { status: 401 });
   }
-  revalidatePath("/", "layout");
+  await flushFront();
   return NextResponse.json({
     revalidated: true,
     note: "已清除前台快取。前台稍候或強制重整即更新(若仍是舊的,可能是 Cloudflare 快取,需另行 purge)。",

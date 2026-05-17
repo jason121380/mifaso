@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { flushFront } from "@/lib/flush-cache";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
 
   if (run && changed > 0) {
     // 文章頁是 ISR(revalidate=300),改完要主動清快取才會即時更新
-    revalidatePath("/", "layout");
+    await flushFront();
   }
 
   return NextResponse.json({

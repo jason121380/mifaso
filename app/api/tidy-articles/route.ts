@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { flushFront } from "@/lib/flush-cache";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { tidyArticleContent } from "@/lib/article-tidy";
@@ -10,6 +10,21 @@ export const runtime = "nodejs";
 
 const OP = "tidy";
 
+// 整段只有一個失效 /article/<slug> 連結的 <p> → 移除(slug 不在已發布清單)
+function stripDeadRelatedLinks(html: string, valid: Set<string>): { html: string; n: number } {
+  let n = 0;
+  const re =
+    /<p\b[^>]*>\s*(?:<(?:strong|em|b|i)>\s*)*<a\b[^>]*\bhref="(\/article\/[^"]+)"[^>]*>[\s\S]*?<\/a>\s*(?:<\/(?:strong|em|b|i)>\s*)*<\/p>/gi;
+  const out = html.replace(re, (full, href: string) => {
+    const slug = decodeURIComponent(
+      href.split("?")[0].split("#")[0].replace("/article/", "").replace(/\/$/, "")
+    );
+    if (!valid.has(slug)) { n++; return ""; }
+    return full;
+  });
+  return { html: out, n };
+}
+
 interface Edit {
   id: string;
   title: string;
@@ -18,25 +33,32 @@ interface Edit {
   fixedHeadings: number;
   removedTocs: number;
   removedRelated: number;
+  removedDeadLinks: number;
 }
 
 async function collectEdits(): Promise<{ edits: Edit[]; total: number }> {
   const articles = await prisma.article.findMany({
-    select: { id: true, title: true, content: true },
+    select: { id: true, title: true, content: true, slug: true, status: true },
   });
+  const validSlugs = new Set(
+    articles.filter((a) => a.status === "PUBLISHED").map((a) => a.slug)
+  );
   const edits: Edit[] = [];
   for (const a of articles) {
     if (!a.content) continue;
     const r = tidyArticleContent(a.content);
-    if (r.changed) {
+    const dl = stripDeadRelatedLinks(r.html, validSlugs);
+    const next = dl.html;
+    if (next !== a.content) {
       edits.push({
         id: a.id,
         title: a.title ?? "",
         before: a.content,
-        next: r.html,
+        next,
         fixedHeadings: r.fixedHeadings,
         removedTocs: r.removedTocs,
         removedRelated: r.removedRelated,
+        removedDeadLinks: dl.n,
       });
     }
   }
@@ -55,7 +77,7 @@ export async function GET(req: NextRequest) {
   }
   if (req.nextUrl.searchParams.get("restore") === "1") {
     const n = await restoreBackups(OP);
-    if (n > 0) revalidatePath("/", "layout");
+    if (n > 0) await flushFront();
     return NextResponse.json({
       restored: true,
       restoredArticles: n,
@@ -73,6 +95,7 @@ export async function GET(req: NextRequest) {
       fixedHeadings: e.fixedHeadings,
       removedTocs: e.removedTocs,
       removedRelated: e.removedRelated,
+      removedDeadLinks: e.removedDeadLinks,
       bytesBefore: e.before.length,
       bytesAfter: e.next.length,
     })),
@@ -100,7 +123,7 @@ export async function POST(req: NextRequest) {
     for (const e of sel) {
       await prisma.$executeRaw`UPDATE "articles" SET "content" = ${e.next} WHERE "id" = ${e.id}`;
     }
-    revalidatePath("/", "layout");
+    await flushFront();
   }
   const backup = await backupInfo(OP);
   return NextResponse.json({
