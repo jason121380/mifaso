@@ -86,16 +86,23 @@
 /* ---- 前台文章內容(WordPress HTML)手機 RWD + 目錄 ---- */
 .prose img,
 .prose figure,
-.prose iframe,
-.prose video,
-.prose blockquote.instagram-media {
+.prose video {
   max-width: 100% !important;
   height: auto;
 }
 .prose figure { margin: 1.5rem 0; }
-/* 影片用 iframe(YouTube/Vimeo)維持 16:9;Instagram 的 iframe 由 embed.js
-   自行決定高度,不可套 aspect-ratio,否則貼文會被裁切 */
-.prose iframe:not(.instagram-media) { width: 100%; aspect-ratio: 16 / 9; }
+/* Instagram:完全交給 embed.js 控制高度,只防溢出,不設 height/aspect-ratio,
+   否則貼文會被裁切 */
+.prose blockquote.instagram-media,
+.prose iframe.instagram-media {
+  max-width: 100% !important;
+}
+/* 影片用 iframe(YouTube/Vimeo)維持 16:9 */
+.prose iframe:not(.instagram-media) {
+  max-width: 100% !important;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
 .prose { overflow-wrap: anywhere; }
 /* 中和 WordPress 對齊類別,避免手機浮動爆版 */
 .prose .alignleft,
