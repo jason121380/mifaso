@@ -17,6 +17,23 @@ export default function ToolsPage() {
   const [confirming, setConfirming] = useState(false);
   const [running, setRunning] = useState(false);
   const [doneMsg, setDoneMsg] = useState("");
+  const [clearing, setClearing] = useState(false);
+  const [cacheMsg, setCacheMsg] = useState("");
+
+  const clearCache = useCallback(async () => {
+    setClearing(true);
+    setCacheMsg("");
+    try {
+      const res = await fetch("/api/revalidate");
+      if (res.status === 401) { setCacheMsg("需要以管理員身分登入。"); return; }
+      await res.json();
+      setCacheMsg("已清除前台快取,前台稍候或強制重整即更新。");
+    } catch {
+      setCacheMsg("清除失敗,請稍後再試。");
+    } finally {
+      setClearing(false);
+    }
+  }, []);
 
   const load = useCallback(async (run = false) => {
     setErr("");
@@ -41,7 +58,7 @@ export default function ToolsPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">維運工具</h1>
+        <h1 className="text-2xl font-bold text-gray-900">工程工具</h1>
         <p className="text-sm text-gray-400 mt-1">內容批次處理,操作前請先看預覽。</p>
       </div>
 
@@ -105,6 +122,28 @@ export default function ToolsPage() {
             </div>
           </>
         ) : null}
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
+        <div>
+          <h2 className="font-semibold text-gray-900">清除前台快取</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            文章頁有快取(ISR),改完內容若前台還是舊的,按這裡立即套用。
+            (若仍是舊的,可能是 Cloudflare 快取,需在 Cloudflare 端 purge。)
+          </p>
+        </div>
+        {cacheMsg && (
+          <p className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+            ✓ {cacheMsg}
+          </p>
+        )}
+        <button
+          onClick={clearCache}
+          disabled={clearing}
+          className="px-4 py-2 text-sm bg-rose-brand text-white rounded-lg hover:bg-rose-dark transition-colors disabled:opacity-40"
+        >
+          {clearing ? "清除中…" : "清除前台快取"}
+        </button>
       </div>
 
       {confirming && (
