@@ -26,7 +26,7 @@ export default function ArticlesPage() {
   const [aiTopic, setAiTopic] = useState("");
   const [aiTopics, setAiTopics] = useState<string[]>([]);
   const [aiTopicsLoading, setAiTopicsLoading] = useState(false);
-  const [aiWithImage, setAiWithImage] = useState(true);
+  const [aiWithImage, setAiWithImage] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiErr, setAiErr] = useState("");
 
