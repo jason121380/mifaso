@@ -137,22 +137,48 @@ export default async function AnalyticsPage() {
 
       <div className="bg-white rounded-xl border border-gray-100 p-5">
         <h2 className="font-semibold text-gray-900 text-sm mb-5">近 14 日趨勢</h2>
-        <div className="flex items-end gap-1.5 h-40">
-          {daily.map((v, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
-              <div className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100">
-                {v}
+        {(() => {
+          // 固定 y 軸:最少 100、上限 1000,超過再 100 為單位往上 ceiling
+          const niceMax = Math.max(100, Math.min(1000, Math.ceil(maxDaily / 100) * 100), Math.ceil(maxDaily / 100) * 100);
+          const ticks = [niceMax, Math.round(niceMax * 0.75), Math.round(niceMax * 0.5), Math.round(niceMax * 0.25), 0];
+          return (
+            <div className="flex gap-2 h-44">
+              {/* y 軸刻度 */}
+              <div className="flex flex-col justify-between text-[10px] text-gray-400 pr-1 py-0 leading-none">
+                {ticks.map((t) => (
+                  <span key={t}>{t.toLocaleString()}</span>
+                ))}
               </div>
-              <div
-                className="w-full bg-rose-brand/80 rounded-t"
-                style={{ height: `${(v / maxDaily) * 100}%`, minHeight: v ? 4 : 0 }}
-              />
-              <div className="text-[10px] text-gray-400">
-                {days[i].getMonth() + 1}/{days[i].getDate()}
+              {/* 圖區:水平輔助線 + bars */}
+              <div className="relative flex-1">
+                {/* 輔助線 */}
+                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                  {ticks.map((t) => (
+                    <div key={t} className="border-t border-dashed border-gray-100" />
+                  ))}
+                </div>
+                {/* bars */}
+                <div className="relative h-full flex items-end gap-1.5">
+                  {daily.map((v, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1 group h-full justify-end">
+                      <div className="text-[10px] text-gray-500 opacity-0 group-hover:opacity-100">
+                        {v}
+                      </div>
+                      <div
+                        className="w-full bg-rose-brand/80 rounded-t"
+                        style={{ height: `${(v / niceMax) * 100}%`, minHeight: v ? 2 : 0 }}
+                        title={`${v}`}
+                      />
+                      <div className="text-[10px] text-gray-400">
+                        {days[i].getMonth() + 1}/{days[i].getDate()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })()}
       </div>
 
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
