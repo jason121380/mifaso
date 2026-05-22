@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { ensurePageViewsTable } from "@/lib/page-views";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import ServerStatsCard from "@/components/admin/ServerStatsCard";
 
 export const dynamic = "force-dynamic";
 
@@ -186,6 +187,8 @@ export default async function AnalyticsPage() {
           )}
         </div>
       </div>
+
+      <ServerStatsCard />
     </div>
   );
 }
