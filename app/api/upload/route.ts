@@ -38,7 +38,6 @@ export async function POST(req: NextRequest) {
   await writeFile(join(uploadPath, filename), buffer);
 
   const url = `/uploads/${folder}/${filename}`;
-  const user = session.user as any;
 
   const media = await prisma.media.create({
     data: {
@@ -47,7 +46,7 @@ export async function POST(req: NextRequest) {
       url,
       size: file.size,
       mimeType: file.type,
-      userId: user.id,
+      userId: u.id,
     },
   });
 
