@@ -31,7 +31,10 @@ export async function POST(req: NextRequest) {
 
   // jpeg/png 一律縮到 1600px + 轉 webp（與 /api/optimize-images 同規格,讓新上傳不再是大原圖）。
   // gif 可能是動圖、avif/webp 已壓過 → 維持原樣不重壓,避免破壞動畫或無謂放大。
-  let buffer = original;
+  // 型別用 Uint8Array：sharp().toBuffer() 是 Buffer<ArrayBufferLike>，
+  // 與 Buffer.from(arrayBuffer) 的 Buffer<ArrayBuffer> 在新版 @types/node 不相容，
+  // 統一成兩者都可指派的 Uint8Array（writeFile / .length 皆可吃）。
+  let buffer: Uint8Array = original;
   let ext = (file.name.split(".").pop() ?? "jpg").toLowerCase();
   let mimeType = file.type;
   if (file.type === "image/jpeg" || file.type === "image/png") {
