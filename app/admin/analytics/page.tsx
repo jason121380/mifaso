@@ -14,6 +14,12 @@ function dayStart(offsetDays = 0): Date {
   return d;
 }
 
+function fmtDay(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
+}
+
 export default async function AnalyticsPage() {
   const session = await auth();
   const role = (session?.user as { role?: string } | undefined)?.role;
@@ -52,15 +58,16 @@ export default async function AnalyticsPage() {
       prisma.pageView.count({ where: { createdAt: { gte: d30 } } }),
     ]);
 
-    const daily = await Promise.all(
-      days.map((start) => {
-        const end = new Date(start);
-        end.setDate(end.getDate() + 1);
-        return prisma.pageView.count({
-          where: { createdAt: { gte: start, lt: end } },
-        });
-      })
-    );
+    // 14 天趨勢:一條 GROUP BY 取代原本 14 條獨立 COUNT（減少對 DB 的往返）。
+    const since = days[0];
+    const dailyRows = await prisma.$queryRaw<{ day: string; c: number }[]>`
+      SELECT to_char(date_trunc('day', "createdAt"), 'YYYY-MM-DD') AS day, count(*)::int AS c
+      FROM "page_views"
+      WHERE "createdAt" >= ${since}
+      GROUP BY 1
+    `;
+    const countByDay = new Map(dailyRows.map((r) => [r.day, Number(r.c)]));
+    const daily = days.map((d) => countByDay.get(fmtDay(d)) ?? 0);
 
     const top = await prisma.pageView.groupBy({
       by: ["path"],

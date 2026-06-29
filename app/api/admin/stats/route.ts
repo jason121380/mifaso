@@ -43,6 +43,19 @@ async function readCgroup(): Promise<{
   }
 }
 
+// uploads 目錄遞迴掃描頗重（現有上百~上千檔）。結果短期內幾乎不變,
+// 快取 60 秒,避免分析頁多次載入 / 連按重整時反覆全掃。
+let uploadsCache: { at: number; val: { bytes: number; files: number } } | null = null;
+const UPLOADS_TTL_MS = 60_000;
+
+async function cachedUploadsSize(dir: string): Promise<{ bytes: number; files: number }> {
+  const now = Date.now();
+  if (uploadsCache && now - uploadsCache.at < UPLOADS_TTL_MS) return uploadsCache.val;
+  const val = await dirSize(dir);
+  uploadsCache = { at: now, val };
+  return val;
+}
+
 async function dirSize(dir: string): Promise<{ bytes: number; files: number }> {
   let bytes = 0;
   let files = 0;
@@ -79,7 +92,7 @@ export async function GET() {
 
   const mem = process.memoryUsage();
   const cg = await readCgroup();
-  const uploads = await dirSize(join(process.cwd(), "public", "uploads"));
+  const uploads = await cachedUploadsSize(join(process.cwd(), "public", "uploads"));
 
   return NextResponse.json({
     node: {
