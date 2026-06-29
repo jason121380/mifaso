@@ -46,10 +46,18 @@ export async function GET(req: NextRequest) {
   const [articles, total] = await Promise.all([
     prisma.article.findMany({
       where,
-      include: {
-        author: { select: { id: true, name: true, avatar: true } },
-        category: true,
-        tags: { include: { tag: true } },
+      // 列表只需要這些欄位。不要帶 content（整篇 HTML，每篇可數十 KB）/ excerpt /
+      // metaDescription / tags，否則一次撈 20 篇全文會讓後台文章管理載入很慢。
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        status: true,
+        featured: true,
+        publishedAt: true,
+        updatedAt: true,
+        author: { select: { id: true, name: true } },
+        category: { select: { id: true, name: true } },
       },
       orderBy: [{ featured: "desc" }, { publishedAt: { sort: "desc", nulls: "last" } }],
       skip: (page - 1) * pageSize,
