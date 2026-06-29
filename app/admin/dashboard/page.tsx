@@ -27,7 +27,15 @@ export default async function DashboardPage() {
       isAdmin ? prisma.user.count() : Promise.resolve(0),
       prisma.article.findMany({
         where: authorFilter,
-        include: { author: { select: { name: true } }, category: true },
+        // 列表只用到標題 / 分類 / 狀態 / 日期，不要帶 content（整篇 HTML）。
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          publishedAt: true,
+          updatedAt: true,
+          category: { select: { name: true } },
+        },
         orderBy: { publishedAt: { sort: "desc", nulls: "last" } },
         take: 6,
       }),

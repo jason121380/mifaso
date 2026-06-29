@@ -8,6 +8,7 @@ import { renderArticleHtml } from "@/lib/article-html";
 import { jsonLdGraph, articleJsonLd, breadcrumbJsonLd } from "@/lib/seo";
 import ArticleCard from "@/components/public/ArticleCard";
 import InstagramEmbed from "@/components/public/InstagramEmbed";
+import { articleCardSelect } from "@/lib/article-select";
 
 interface Props { params: Promise<{ slug: string }> }
 
@@ -94,7 +95,7 @@ export default async function ArticlePage({ params }: Props) {
         { tags: { some: { tagId: { in: article.tags.map((t) => t.tagId) } } } },
       ],
     },
-    include: { author: { select: { id: true, name: true, avatar: true } }, category: true, tags: { include: { tag: true } } },
+    select: articleCardSelect,
     take: 3,
     orderBy: { publishedAt: "desc" },
   });

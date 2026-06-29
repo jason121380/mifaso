@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
 import ArticleCard from "@/components/public/ArticleCard";
+import { articleCardSelect } from "@/lib/article-select";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -39,7 +40,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const [articles, total] = await Promise.all([
     prisma.article.findMany({
       where: { status: "PUBLISHED", categoryId: category.id },
-      include: { author: { select: { id: true, name: true, avatar: true } }, category: true, tags: { include: { tag: true } } },
+      select: articleCardSelect,
       orderBy: { publishedAt: "desc" },
       skip,
       take: PAGE_SIZE,

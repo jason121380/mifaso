@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import ArticleCard from "@/components/public/ArticleCard";
 import prisma from "@/lib/prisma";
+import { articleCardSelect } from "@/lib/article-select";
 
 export const metadata: Metadata = {
   title: { absolute: "MIFASO 迷髮所 — 時尚・美髮・生活美學" },
@@ -21,13 +22,13 @@ async function getHomeData() {
   const [featuredArticles, recentArticles, categories] = await Promise.all([
     prisma.article.findMany({
       where: { status: "PUBLISHED", featured: true },
-      include: { author: { select: { id: true, name: true, avatar: true } }, category: true, tags: { include: { tag: true } } },
+      select: articleCardSelect,
       orderBy: { publishedAt: "desc" },
       take: 3,
     }),
     prisma.article.findMany({
       where: { status: "PUBLISHED" },
-      include: { author: { select: { id: true, name: true, avatar: true } }, category: true, tags: { include: { tag: true } } },
+      select: articleCardSelect,
       orderBy: { publishedAt: "desc" },
       take: 9,
     }),
